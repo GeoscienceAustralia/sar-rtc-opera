@@ -11,7 +11,6 @@ from dem_stitcher import stitch_dem
 import docker
 from utils import upload_file, find_files
 import time
-import re
 import shutil
 import json
 
@@ -47,8 +46,8 @@ if __name__ == "__main__":
     for i, scene in enumerate(otf_cfg['scenes']):
         
         timing = {}
-
         t0 = time.time()
+
         logging.info(f'PROCESS 1: Downloads')
         logging.info(f'processing scene {i+1} of {len(otf_cfg["scenes"])} : {scene}')
         # search for the scene in asf
@@ -178,17 +177,21 @@ if __name__ == "__main__":
                               stderr=True,
                               stream=True)
         
-        l = 0
+        l, t = 0, 0
         # show the logs while the container is running
         while container.status in ['created', 'running']:
-            logs = container.logs()
-            if len(logs) != l:
-                # new logs added in container, show these here
-                new_logs = logs[l:].decode("utf-8") 
-                logging.info(new_logs)
-                l = len(logs)
-            container.reload()
+            # reflesh every 5 seconds
+            if ((int(time.time())%5 == 0) and (int(time.time()!=t))):
+                logs = container.logs()
+                if len(logs) != l:
+                    # new logs added in container, show these here
+                    new_logs = logs[l:].decode("utf-8") 
+                    logging.info(new_logs)
+                    l = len(logs)
+                container.reload()
+                t = int(time.time())
 
+        # write the logs from the container
         with open(log_path, 'w') as f:
             f.write(logs.decode("utf-8"))
 
@@ -277,8 +280,9 @@ if __name__ == "__main__":
         logging.info(f'Elapsed time: {((t6 - t0)/60)} minutes')
         timing['Total'] = t6 - t0
 
+        # push timings + logs to s3
         if otf_cfg['push_to_s3']:
-            timing_file = SCENE_NAME + '_timing.txt'
+            timing_file = SCENE_NAME + '_timing.json'
             bucket_path = os.path.join(bucket_folder, timing_file)
             with open(timing_file, 'w') as fp:
                 json.dump(timing, fp)
