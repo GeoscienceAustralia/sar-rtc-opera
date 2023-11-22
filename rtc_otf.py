@@ -20,7 +20,6 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S')
 
 
-
 if __name__ == "__main__":
 
     t_start = time.time()
@@ -85,15 +84,15 @@ if __name__ == "__main__":
                       save_dir=otf_cfg['precise_orbit_folder'], 
                       orbit_type='precise')
         if len(prec_orb_files) > 0:
-            ORBIT_PATH = prec_orb_files[0]
-            logging.info(f'using precise orbits')
+            ORBIT_PATH = str(prec_orb_files[0])
+            logging.info(f'using precise orbits: {ORBIT_PATH}')
         else:
             #download restituted orbits
             res_orb_files = download_eofs(sentinel_file=scene_zip, 
                           save_dir=otf_cfg['restituted_orbit_folder'], 
                           orbit_type='restituted')  
-            ORBIT_PATH = res_orb_files[0]
-            logging.info(f'using restituted orbits')
+            ORBIT_PATH = str(res_orb_files[0])
+            logging.info(f'using restituted orbits: {ORBIT_PATH}')
         
         t2 = time.time()
         timing['Download Orbits'] = t2 - t1
@@ -104,7 +103,7 @@ if __name__ == "__main__":
                 ['Geometry']['GPolygons'][0]['Boundary']['Points'])
         points = [(p['Longitude'],p['Latitude']) for p in points]
         poly = Polygon(points)
-        bounds = poly.buffer(1).bounds #buffered
+        bounds = poly.buffer(1.5).bounds #buffered
         
         logging.info(f'downloding DEM for scene bounds : {bounds}')
         logging.info(f'type of DEM being downloaded : {otf_cfg["dem_type"]}')
@@ -180,7 +179,7 @@ if __name__ == "__main__":
         l, t = 0, 0
         # show the logs while the container is running
         while container.status in ['created', 'running']:
-            # reflesh every 5 seconds
+            # refresh every 5 seconds
             if ((int(time.time())%5 == 0) and (int(time.time()!=t))):
                 logs = container.logs()
                 if len(logs) != l:
