@@ -2,6 +2,7 @@ git clone https://github.com/opera-adt/RTC.git RTC
 
 # build container
 cp build_docker_image_otf.sh RTC
+cp Dockerfile RTC
 cd RTC
 sh build_docker_image_otf.sh
 cd ..

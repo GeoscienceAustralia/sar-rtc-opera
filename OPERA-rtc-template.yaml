@@ -54,8 +54,8 @@ runconfig:
           save_bursts: True
           save_mosaics: True
           output_imagery_format: COG
-          output_imagery_compression: ZSTD
-          output_imagery_nbits: 16
+          output_imagery_compression: DEFLATE
+          output_imagery_nbits: 32
 
           # Optional. Save secondary layers (e.g., inc. angle) within 
           # the HDF5 file
@@ -99,6 +99,9 @@ runconfig:
           # Apply static tropospheric delay correction
           apply_static_tropospheric_delay_correction: True
 
+          # DEM interpolation method
+          dem_interpolation_method: biquintic
+
           # OPTIONAL - to control behavior of RTC module
           # (only applicable if geocode.apply_rtc is True)
           rtc:
@@ -121,7 +124,7 @@ runconfig:
               rtc_min_value_db:
 
               # RTC DEM upsampling
-              dem_upsampling: 1
+              dem_upsampling: 2
 
           # OPTIONAL - Mechanism to specify output posting and DEM
           geocoding:
@@ -139,7 +142,7 @@ runconfig:
               memory_mode: auto
 
               # OPTIONAL - Processing upsampling factor applied to input geogrid
-              geogrid_upsampling: 1
+              geogrid_upsampling: 2
                
               # Save the incidence angle
               save_incidence_angle: False
@@ -185,8 +188,15 @@ runconfig:
               # input sampling in the range direction
               upsample_radargrid: False
 
+              # Fields to populate the products' metadata required by
+              # CEOS Analysis Ready Data specifications
+              estimated_geometric_accuracy_bias_x:
+              estimated_geometric_accuracy_bias_y:
+              estimated_geometric_accuracy_stddev_x:
+              estimated_geometric_accuracy_stddev_y:
+
               bursts_geogrid:
-                  output_epsg:
+                  output_epsg: 3031
                   x_posting: 20
                   y_posting: 20
                   x_snap: 20
@@ -200,8 +210,10 @@ runconfig:
 
 
           mosaicking:
+              # OPTIONAL - Choices: "average", "first", "bursts_center" (default)
+              mosaic_mode: average
               mosaic_geogrid:
-                  output_epsg:
+                  output_epsg: 3031
                   x_posting: 20
                   y_posting: 20
                   x_snap: 20
