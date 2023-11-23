@@ -29,6 +29,7 @@ if __name__ == "__main__":
 
     # define success tracker
     success = {'opera-rtc': []}
+    failed = {'opera-rtc': []}
 
     # read in the config for on the fly (otf) processing
     with open(args.config, 'r', encoding='utf8') as fin:
@@ -103,7 +104,7 @@ if __name__ == "__main__":
                 ['Geometry']['GPolygons'][0]['Boundary']['Points'])
         points = [(p['Longitude'],p['Latitude']) for p in points]
         poly = Polygon(points)
-        bounds = poly.buffer(1.5).bounds #buffered
+        bounds = poly.buffer(4).bounds #buffered
         
         logging.info(f'downloding DEM for scene bounds : {bounds}')
         logging.info(f'type of DEM being downloaded : {otf_cfg["dem_type"]}')
@@ -207,8 +208,13 @@ if __name__ == "__main__":
                                prod_id + '.h5')
         # keep track of success
         if os.path.exists(h5_path):
+            clear_logs=True
             success['opera-rtc'].append(h5_path)
             logging.info(f'RTC Backscatter successfully made')
+        else:
+            clear_logs = False
+            failed['opera-rtc'].append(h5_path)
+            logging.info(f'RTC Backscatter failed')
 
         t4 = time.time()
         timing['RTC Processing'] = t4 - t3
@@ -293,6 +299,12 @@ if __name__ == "__main__":
             os.remove(timing_file)
 
     logging.info(f'Run complete, {len(otf_cfg["scenes"])} scenes processed')
+    logging.info(f'{len(otf_cfg["scenes"])} scenes successfully processed: ')
+    for s in success['opera-rtc']:
+        logging.info(f'{s}')
+    logging.info(f'{len(otf_cfg["scenes"])} scenes FAILED: ')
+    for s in failed['opera-rtc']:
+        logging.info(f'{s}')
     logging.info(f'Elapsed time:  {((time.time() - t_start)/60)} minutes')
 
 
