@@ -1,4 +1,4 @@
-FROM oraclelinux:8
+FROM oraclelinux:9
 
 LABEL author="OPERA ADT" \
     description="RTC cal/val release R4" \
@@ -47,7 +47,7 @@ RUN curl -sSL https://github.com/isce-framework/s1-reader/archive/refs/tags/v0.2
 RUN python -m pip install ./RTC &&\
     echo "conda activate RTC" >> /home/rtc_user/.bashrc
 
-COPY ~/.netrc ~/.netrc
+COPY --chown=rtc_user --chmod=og-rw .netrc /home/rtc_user/.netrc
 
 WORKDIR /home/rtc_user/scratch
 
