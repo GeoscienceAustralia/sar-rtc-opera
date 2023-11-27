@@ -5,11 +5,11 @@ import asf_search as asf
 from eof.download import download_eofs
 import logging
 import zipfile
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, box
 import rasterio
 from dem_stitcher import stitch_dem
 import docker
-from utils import upload_file, find_files
+from utils import upload_file, find_files, expand_raster_with_bounds
 import time
 import shutil
 import json
@@ -104,12 +104,14 @@ if __name__ == "__main__":
                 ['Geometry']['GPolygons'][0]['Boundary']['Points'])
         points = [(p['Longitude'],p['Latitude']) for p in points]
         poly = Polygon(points)
-        bounds = poly.buffer(4).bounds #buffered
+        bounds = poly.bounds 
+        buf_bounds = poly.buffer(1).bounds #buffered
         
-        logging.info(f'downloding DEM for scene bounds : {bounds}')
+        logging.info(f'Scene bounds : {bounds}')
+        logging.info(f'Downloding DEM for  bounds : {buf_bounds}')
         logging.info(f'type of DEM being downloaded : {otf_cfg["dem_type"]}')
         # get the DEM and geometry information
-        X, p = stitch_dem(bounds,
+        X, p = stitch_dem(buf_bounds,
                         dem_name=otf_cfg['dem_type'],
                         dst_ellipsoidal_height=False,
                         dst_area_or_point='Point')
@@ -126,6 +128,20 @@ if __name__ == "__main__":
             ds.write(X, 1)
             ds.update_tags(AREA_OR_POINT='Point')
         del X
+
+        # get the bounds of the downloaded DEM
+        # the full area requested may not be covered
+        dem_bounds = rasterio.transform.array_bounds(p['height'], p['width'], p['transform'])
+        logging.info(f'Downloaded DEM bounds: {dem_bounds}')
+        # the DEM not covering the full extent of the scene is an issue
+        if not box(*dem_bounds).contains_properly(box(*buf_bounds)):
+            logging.warning('Downloaded DEM does not cover scene bounds, filling with nodata')
+            logging.info('Expanding the bounds of the downloaded DEM')
+            DEM_ADJ_PATH = DEM_PATH.replace('.tif','_adj.tif') #adjusted DEM path
+            expand_raster_with_bounds(DEM_PATH, DEM_ADJ_PATH, dem_bounds, buf_bounds)
+            logging.info(f'Replacing old DEM: {DEM_PATH}')
+            os.remove(DEM_PATH)
+            os.rename(DEM_ADJ_PATH, DEM_PATH)
 
         t3 = time.time()
         timing['Download DEM'] = t3 - t2
@@ -171,7 +187,7 @@ if __name__ == "__main__":
         container = client.containers.run(f'opera/rtc:final_1.0.1', 
                               docker_command, 
                               volumes=volumes, 
-                              user='root',
+                              user='rtc_user',
                               detach=True, 
                               stdout=True, 
                               stderr=True,
@@ -192,6 +208,8 @@ if __name__ == "__main__":
                 t = int(time.time())
 
         # write the logs from the container
+        # TODO write to file in above, no need to keep
+        # the full logs in memory
         with open(log_path, 'w') as f:
             f.write(logs.decode("utf-8"))
 
@@ -209,17 +227,19 @@ if __name__ == "__main__":
         # keep track of success
         if os.path.exists(h5_path):
             clear_logs=True
+            run_success = True
             success['opera-rtc'].append(h5_path)
             logging.info(f'RTC Backscatter successfully made')
         else:
             clear_logs = False
+            run_success = False
             failed['opera-rtc'].append(h5_path)
             logging.info(f'RTC Backscatter failed')
 
         t4 = time.time()
         timing['RTC Processing'] = t4 - t3
             
-        if otf_cfg['push_to_s3']:
+        if otf_cfg['push_to_s3'] and run_success:
             logging.info(f'PROCESS 3: Push results to S3 bucket')
             bucket = otf_cfg['s3_bucket']
             outputs = [x for x in os.listdir(otf_cfg['OPERA_output_folder']) if SCENE_NAME in x]
@@ -286,7 +306,7 @@ if __name__ == "__main__":
         timing['Total'] = t6 - t0
 
         # push timings + logs to s3
-        if otf_cfg['push_to_s3']:
+        if otf_cfg['push_to_s3'] and run_success:
             timing_file = SCENE_NAME + '_timing.json'
             bucket_path = os.path.join(bucket_folder, timing_file)
             with open(timing_file, 'w') as fp:
@@ -299,10 +319,10 @@ if __name__ == "__main__":
             os.remove(timing_file)
 
     logging.info(f'Run complete, {len(otf_cfg["scenes"])} scenes processed')
-    logging.info(f'{len(otf_cfg["scenes"])} scenes successfully processed: ')
+    logging.info(f'{len(success['opera-rtc'])} scenes successfully processed: ')
     for s in success['opera-rtc']:
         logging.info(f'{s}')
-    logging.info(f'{len(otf_cfg["scenes"])} scenes FAILED: ')
+    logging.info(f'{len(failed['opera-rtc'])} scenes FAILED: ')
     for s in failed['opera-rtc']:
         logging.info(f'{s}')
     logging.info(f'Elapsed time:  {((time.time() - t_start)/60)} minutes')

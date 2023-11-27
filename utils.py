@@ -5,6 +5,11 @@ import logging
 import boto3
 from botocore.exceptions import ClientError
 import os
+import rasterio
+from rasterio.transform import from_origin
+import numpy as np
+
+logger = logging.getLogger(__name__)
 
 def find_files(folder, contains):
     paths = []
@@ -55,3 +60,46 @@ def upload_file(file_name, bucket, object_name=None):
     except ClientError as e:
         logging.error(e)
         return False
+
+def expand_raster_with_bounds(input_raster, output_raster, old_bounds, new_bounds):
+
+    # Open the raster dataset
+    with rasterio.open(input_raster, 'r') as src:
+        # get old bounds
+        old_left, old_bottom, old_right, old_top = old_bounds
+        # Define the new bounds
+        new_left, new_bottom, new_right, new_top = new_bounds
+        # adjust the new bounds with even pixel multiples of existing
+        # this will stop small offsets
+        logging.info(f'Making new raster with target bounds: {new_bounds}')
+        new_left = old_left - int(abs(new_left-old_left)/src.res[0])*src.res[0]
+        new_right = old_right + int(abs(new_right-old_right)/src.res[0])*src.res[0]
+        new_bottom = old_bottom - int(abs(new_bottom-old_bottom)/src.res[1])*src.res[1]
+        new_top = old_top + int(abs(new_top-old_top)/src.res[1])*src.res[1]
+        logging.info(f'New raster bounds: {(new_left, new_bottom, new_right, new_top)}')
+        # Calculate the new width and height, should be integer values
+        new_width = int((new_right - new_left) / src.res[0])
+        new_height = int((new_top - new_bottom) / src.res[1])
+        # Define the new transformation matrix
+        transform = from_origin(new_left, new_top, src.res[0], src.res[1])
+        # Create a new raster dataset with expanded bounds
+        profile = src.profile
+        profile.update({
+            'width': new_width,
+            'height': new_height,
+            'transform': transform
+        })
+        # make a temp file
+        tmp = output_raster.replace('.tif','_tmp.tif')
+        logging.debug(f'Making temp file: {tmp}')
+        with rasterio.open(tmp, 'w', **profile) as dst:
+            # Read the data from the source and write it to the destination
+            data = np.full((new_height, new_width), fill_value=profile['nodata'], dtype=profile['dtype'])
+            dst.write(data, 1)
+        # merge the old raster into the new raster with expanded bounds 
+        logging.info(f'Merging original raster and expanding bounds...')
+        rasterio.merge.merge(
+            datasets=[tmp, input_raster],
+            method='max',
+            dst_path=output_raster)
+        os.remove(tmp)
