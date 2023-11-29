@@ -9,10 +9,17 @@ from shapely.geometry import Polygon, box
 import rasterio
 from dem_stitcher import stitch_dem
 import docker
-from utils import upload_file, find_files, expand_raster_with_bounds
+from utils import (upload_file, 
+        find_files, 
+        transform_polygon,
+        expand_raster_with_bounds,
+        get_REMA_index_file,
+        get_REMA_dem)
 import time
 import shutil
 import json
+import geopandas as gpd
+
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)-8s %(message)s',
@@ -103,18 +110,13 @@ if __name__ == "__main__":
         points = (asf_result.__dict__['umm']['SpatialExtent']['HorizontalSpatialDomain']
                 ['Geometry']['GPolygons'][0]['Boundary']['Points'])
         points = [(p['Longitude'],p['Latitude']) for p in points]
-        poly = Polygon(points)
-        bounds = poly.bounds 
-        buf_bounds = poly.buffer(1).bounds #buffered
+        scene_poly = Polygon(points)
+        scene_bounds = scene_poly.bounds 
+        scene_bounds_buf = scene_poly.buffer(0.3).bounds #buffered
         
-        logging.info(f'Scene bounds : {bounds}')
-        logging.info(f'Downloding DEM for  bounds : {buf_bounds}')
+        logging.info(f'Scene bounds : {scene_bounds}')
+        logging.info(f'Downloding DEM for  bounds : {scene_bounds_buf}')
         logging.info(f'type of DEM being downloaded : {otf_cfg["dem_type"]}')
-        # get the DEM and geometry information
-        X, p = stitch_dem(buf_bounds,
-                        dem_name=otf_cfg['dem_type'],
-                        dst_ellipsoidal_height=False,
-                        dst_area_or_point='Point')
 
         # make folders and set filenames
         dem_dl_folder = os.path.join(otf_cfg['dem_folder'],otf_cfg['dem_type'])
@@ -122,24 +124,52 @@ if __name__ == "__main__":
         dem_filename = SCENE_NAME + '_dem.tif'
         DEM_PATH = os.path.join(dem_dl_folder,dem_filename)
         
-        # save with rasterio
-        logging.info(f'saving dem to {DEM_PATH}')
-        with rasterio.open(DEM_PATH, 'w', **p) as ds:
-            ds.write(X, 1)
-            ds.update_tags(AREA_OR_POINT='Point')
-        del X
+        if 'REMA' not in str(otf_cfg['dem_type']).upper():
+            # get the DEM and geometry information
+            dem_data, dem_meta = stitch_dem(scene_bounds_buf,
+                            dem_name=otf_cfg['dem_type'],
+                            dst_ellipsoidal_height=False,
+                            dst_area_or_point='Point')
+            
+            # save with rasterio
+            logging.info(f'saving dem to {DEM_PATH}')
+            with rasterio.open(DEM_PATH, 'w', **p) as ds:
+                ds.write(dem_data, 1)
+                ds.update_tags(AREA_OR_POINT='Point')
+            del dem_data
+        else:
+            # handle REMA DEM
+            # download the index file for the rema dem
+            # hosted on https://data.pgc.umn.edu
+            logging.info('Downloading REMA index file')
+            rema_index_path = get_REMA_index_file(dem_dl_folder)
+            # load into gpdf
+            rema_index_df = gpd.read_file(rema_index_path)
+            # transform the scene geometry to rema native 3031
+            scene_3031 = transform_polygon(4326, 3031, box(*scene_bounds_buf))
+            # find the intersecting tiles
+            intersecting_rema_files = rema_index_df[rema_index_df.geometry.intersects(scene_3031)]
+            res = int(otf_cfg['dem_type'].split('_')[1])
+            url_list = intersecting_rema_files['fileurl'].to_list()
+            get_REMA_dem(url_list, res, dem_dl_folder, dem_filename, crs=4326)
+            # read the metadata from the dem
+            with rasterio.open(DEM_PATH) as src:
+                dem_meta = src.meta.copy()
 
         # get the bounds of the downloaded DEM
         # the full area requested may not be covered
-        dem_bounds = rasterio.transform.array_bounds(p['height'], p['width'], p['transform'])
+        dem_bounds = rasterio.transform.array_bounds(
+            dem_meta['height'], 
+            dem_meta['width'], 
+            dem_meta['transform'])
         logging.info(f'Downloaded DEM bounds: {dem_bounds}')
         # the DEM not covering the full extent of the scene is an issue
-        if not box(*dem_bounds).contains_properly(box(*buf_bounds)):
+        if not box(*dem_bounds).contains_properly(box(*scene_bounds_buf)):
             logging.warning('Downloaded DEM does not cover scene bounds, filling with nodata')
             logging.info('Expanding the bounds of the downloaded DEM')
             DEM_ADJ_PATH = DEM_PATH.replace('.tif','_adj.tif') #adjusted DEM path
-            expand_raster_with_bounds(DEM_PATH, DEM_ADJ_PATH, dem_bounds, buf_bounds)
-            logging.info(f'Replacing old DEM: {DEM_PATH}')
+            expand_raster_with_bounds(DEM_PATH, DEM_ADJ_PATH, dem_bounds, scene_bounds_buf)
+            logging.info(f'Replacing DEM: {DEM_PATH}')
             os.remove(DEM_PATH)
             os.rename(DEM_ADJ_PATH, DEM_PATH)
 

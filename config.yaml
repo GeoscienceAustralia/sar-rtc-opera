@@ -1,8 +1,8 @@
 # list of scenes to download and process
 scenes: [
-        #S1B_IW_SLC__1SSH_20190223T222639_20190223T222706_015079_01C2E9_1D63,
-        #S1A_IW_SLC__1SSH_20190605T222724_20190605T222751_027550_031BE1_AD3A,
-        S1A_IW_SLC__1SSH_20230127T142750_20230127T142817_046970_05A22F_17F7,
+        S1B_IW_SLC__1SSH_20190223T222639_20190223T222706_015079_01C2E9_1D63,
+        # S1A_IW_SLC__1SSH_20190605T222724_20190605T222751_027550_031BE1_AD3A,
+        # S1A_IW_SLC__1SSH_20230127T142750_20230127T142817_046970_05A22F_17F7,
         # S1A_IW_SLC__1SSH_20190926T124734_20190926T124804_029192_0350B9_FA6B,
         # S1B_IW_SLC__1SSH_20190315T195015_20190315T195045_015369_01CC73_DB8B,
         # S1B_IW_SLC__1SSH_20210223T233056_20210223T233124_025740_031194_E7BE,
@@ -47,10 +47,14 @@ dem_folder: /data/dem
 
 # type of dem to download for each scene
 # list of valid dems in https://pypi.org/project/dem-stitcher/
-dem_type: glo_30
+# REMA must be specified with resolution - e.g. REMA_32
+# valid resolutions are [2, 10, 32, 100, 500, 1000]
+#dem_type: glo_30
+dem_type: REMA_32
+
 
 # s3 bucket to push the results
-# formatting will be {s3_bucket}/{opera-rtc}/{scene}/{product_id}
+# formatting will be {s3_bucket}/{opera-rtc}/{dem_type}/{scene}/{product_id}
 s3_bucket: deant-data-public-dev
 
 # whether to push to s3
