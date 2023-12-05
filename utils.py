@@ -208,7 +208,7 @@ def get_REMA_dem(url_list, resolution, save_folder, dem_name, crs=4326):
             dst_path=merge_dem_path)
     # reporject to desired crs
     reproj_dem_path = os.path.join(save_folder,dem_name)
-    logging.info(f'reporjecting DEM to {crs}')
+    logging.info(f'reprojecting DEM to {crs}')
     reproject_raster(merge_dem_path, reproj_dem_path, crs)
     os.remove(merge_dem_path)
 
