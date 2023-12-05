@@ -55,10 +55,16 @@ if __name__ == "__main__":
         timing = {}
         t0 = time.time()
 
-        logging.info(f'PROCESS 1: Downloads')
+        # add the scene name to the out folder
+        otf_cfg['OPERA_output_folder'] = os.path.join(otf_cfg['OPERA_output_folder'],scene)
+        os.makedirs(otf_cfg['OPERA_output_folder'], exist_ok=True)
+
         logging.info(f'processing scene {i+1} of {len(otf_cfg["scenes"])} : {scene}')
+        logging.info(f'PROCESS 1: Downloads')
         # search for the scene in asf
         logging.info(f'searching asf for scene...')
+        asf.constants.CMR_TIMEOUT = 45
+        logging.debug(f'CMR will timeout in {asf.constants.CMR_TIMEOUT}s')
         asf_results = asf.granule_search([scene], asf.ASFSearchOptions(processingLevel='SLC'))
         
         if len(asf_results) > 0:
@@ -66,6 +72,8 @@ if __name__ == "__main__":
             asf_result = asf_results[0]
         else:
             logging.error(f'scene not found : {scene}')
+            run_success = False
+            failed['opera-rtc'].append(scene)
             continue
         
         # download scene
@@ -110,13 +118,20 @@ if __name__ == "__main__":
         points = (asf_result.__dict__['umm']['SpatialExtent']['HorizontalSpatialDomain']
                 ['Geometry']['GPolygons'][0]['Boundary']['Points'])
         points = [(p['Longitude'],p['Latitude']) for p in points]
+        buffer = 1.5
         scene_poly = Polygon(points)
+        scene_poly_buf = scene_poly.buffer(buffer)
         scene_bounds = scene_poly.bounds 
-        scene_bounds_buf = scene_poly.buffer(0.3).bounds #buffered
-        
+        scene_bounds_buf = scene_poly.buffer(buffer).bounds #buffered
         logging.info(f'Scene bounds : {scene_bounds}')
         logging.info(f'Downloding DEM for  bounds : {scene_bounds_buf}')
         logging.info(f'type of DEM being downloaded : {otf_cfg["dem_type"]}')
+
+        # transform the scene geometries to 3031
+        scene_poly_3031 = transform_polygon(4326, 3031, scene_poly)
+        scene_poly_buf_3031 = transform_polygon(4326, 3031, scene_poly_buf)
+        scene_bounds_3031 = transform_polygon(4326, 3031, box(*scene_bounds))
+        scene_bounds_buf_3031 = transform_polygon(4326, 3031, box(*scene_bounds_buf))
 
         # make folders and set filenames
         dem_dl_folder = os.path.join(otf_cfg['dem_folder'],otf_cfg['dem_type'])
@@ -133,7 +148,7 @@ if __name__ == "__main__":
             
             # save with rasterio
             logging.info(f'saving dem to {DEM_PATH}')
-            with rasterio.open(DEM_PATH, 'w', **p) as ds:
+            with rasterio.open(DEM_PATH, 'w', **dem_meta) as ds:
                 ds.write(dem_data, 1)
                 ds.update_tags(AREA_OR_POINT='Point')
             del dem_data
@@ -145,13 +160,12 @@ if __name__ == "__main__":
             rema_index_path = get_REMA_index_file(dem_dl_folder)
             # load into gpdf
             rema_index_df = gpd.read_file(rema_index_path)
-            # transform the scene geometry to rema native 3031
-            scene_3031 = transform_polygon(4326, 3031, box(*scene_bounds_buf))
             # find the intersecting tiles
-            intersecting_rema_files = rema_index_df[rema_index_df.geometry.intersects(scene_3031)]
-            res = int(otf_cfg['dem_type'].split('_')[1])
+            intersecting_rema_files = rema_index_df[
+                rema_index_df.geometry.intersects(scene_bounds_buf_3031)]
+            resolution = int(otf_cfg['dem_type'].split('_')[1])
             url_list = intersecting_rema_files['fileurl'].to_list()
-            get_REMA_dem(url_list, res, dem_dl_folder, dem_filename, crs=4326)
+            get_REMA_dem(url_list, resolution, dem_dl_folder, dem_filename, crs=4326)
             # read the metadata from the dem
             with rasterio.open(DEM_PATH) as src:
                 dem_meta = src.meta.copy()
@@ -250,7 +264,6 @@ if __name__ == "__main__":
         except:
             logging.info('container already killed')
 
-
         # check if the final products exist, indicating success 
         h5_path = os.path.join(otf_cfg['OPERA_output_folder'],
                                prod_id + '.h5')
@@ -266,6 +279,13 @@ if __name__ == "__main__":
             failed['opera-rtc'].append(h5_path)
             logging.info(f'RTC Backscatter failed')
 
+        # get the crs of the final scene
+        tifs = [x for x in os.listdir(otf_cfg['OPERA_output_folder']) if '.tif' in x]
+        tif = os.path.join(otf_cfg['OPERA_output_folder'],tifs[0])
+        with rasterio.open(tif) as src:
+            trg_crs = str(src.meta['crs'])
+        logging.info(f'CRS of mosaic: {trg_crs}')
+        
         t4 = time.time()
         timing['RTC Processing'] = t4 - t3
             
@@ -276,7 +296,8 @@ if __name__ == "__main__":
             # set the path in the bucket
             bucket_folder = os.path.join('rtc-opera/',
                                          otf_cfg['dem_type'],
-                                         SCENE_NAME)
+                                         f'{trg_crs.split(":")[-1]}',
+                                         f'{SCENE_NAME}')
             for file_ in outputs:
                 file_path = os.path.join(otf_cfg['OPERA_output_folder'],file_)
                 bucket_path = os.path.join(bucket_folder,file_)
