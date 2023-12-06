@@ -43,7 +43,7 @@ if __name__ == "__main__":
         otf_cfg = yaml.safe_load(fin.read())
 
     # read in aws credentials and set as environ vars
-    logging.info(f'setting aws credentials from : {otf_cfg['aws_credentials']}')
+    logging.info(f'setting aws credentials from : {otf_cfg["aws_credentials"]}')
     with open(otf_cfg['aws_credentials'], "r", encoding='utf8') as f:
         aws_cfg = yaml.safe_load(f.read())
         # set all keys as environment variables
@@ -80,7 +80,7 @@ if __name__ == "__main__":
             continue
         
         # read in credentials to download from ASF
-        logging.info(f'setting earthdata credentials from: {otf_cfg['earthdata_credentials']}')
+        logging.info(f'setting earthdata credentials from: {otf_cfg["earthdata_credentials"]}')
         with open(otf_cfg['earthdata_credentials'], "r", encoding='utf8') as f:
             earthdata_cfg = yaml.safe_load(f.read())
             earthdata_uid = earthdata_cfg['login']

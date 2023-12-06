@@ -47,7 +47,7 @@ RUN curl -sSL https://github.com/isce-framework/s1-reader/archive/refs/tags/v0.2
 RUN python -m pip install ./RTC &&\
     echo "conda activate RTC" >> /home/rtc_user/.bashrc
 
-COPY --chown=rtc_user --chmod=og-rw .netrc /home/rtc_user/.netrc
+COPY --chown=rtc_user --chmod=og-rw credentials/.netrc /home/rtc_user/.netrc
 
 WORKDIR /home/rtc_user/scratch
 
