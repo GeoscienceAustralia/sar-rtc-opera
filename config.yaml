@@ -47,8 +47,10 @@ OPERA_scratch_folder: /data/OPERA/scratch
 OPERA_output_folder: /data/OPERA/outdir
 
 # location of earthdata credentials to download data.
-# file should be in format shown in credentials_example.txt
-earthdata_credentials: credentials_earthdata.txt
+earthdata_credentials: credentials/credentials_earthdata.yaml
+
+# location of aws credentials 
+aws_credentials: credentials/credentials_aws.yaml
 
 # directory to save scenes
 scene_folder: /data/scenes

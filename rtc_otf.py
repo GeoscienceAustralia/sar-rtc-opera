@@ -41,12 +41,15 @@ if __name__ == "__main__":
     # read in the config for on the fly (otf) processing
     with open(args.config, 'r', encoding='utf8') as fin:
         otf_cfg = yaml.safe_load(fin.read())
-    
-    # read in credentials to download from ASF
-    with open(otf_cfg['earthdata_credentials'], "r") as f:
-        txt = str(f.read())
-        uid = txt.split('\n')[1].split('login')[-1][1:]
-        pswd = txt.split('\n')[2].split('password')[-1][1:]
+
+    # read in aws credentials and set as environ vars
+    logging.info(f'setting aws credentials from : {otf_cfg['aws_credentials']}')
+    with open(otf_cfg['aws_credentials'], "r", encoding='utf8') as f:
+        aws_cfg = yaml.safe_load(f.read())
+        # set all keys as environment variables
+        for k in aws_cfg.keys():
+            logging.info(f'setting {k}')
+            os.environ[k] = aws_cfg[k]
 
     # loop through the list of scenes
     # download data -> produce backscatter -> save
@@ -76,10 +79,17 @@ if __name__ == "__main__":
             failed['opera-rtc'].append(scene)
             continue
         
+        # read in credentials to download from ASF
+        logging.info(f'setting earthdata credentials from: {otf_cfg['earthdata_credentials']}')
+        with open(otf_cfg['earthdata_credentials'], "r", encoding='utf8') as f:
+            earthdata_cfg = yaml.safe_load(f.read())
+            earthdata_uid = earthdata_cfg['login']
+            earthdata_pswd = earthdata_cfg['password']
+        
         # download scene
         logging.info(f'downloading scene')
         session = asf.ASFSession()
-        session.auth_with_creds(uid,pswd)
+        session.auth_with_creds(earthdata_uid,earthdata_pswd)
         SCENE_NAME = asf_results[0].__dict__['umm']['GranuleUR'].split('-')[0]
         scene_zip = os.path.join(otf_cfg['scene_folder'], SCENE_NAME + '.zip')
         asf_result.download(path=otf_cfg['scene_folder'], session=session)
@@ -220,6 +230,7 @@ if __name__ == "__main__":
         docker_command = f'rtc_s1.py {opera_config_path}'
         # We mount the data folder in the container in the same location.
         # This is so the files can be accessed by the program at the paths specified
+        # TODO mount individual volumes and dont assume all are at /data
         volumes = [f'{otf_cfg["data_folder"]}:{otf_cfg["data_folder"]}']
         
         # setup file for logs
