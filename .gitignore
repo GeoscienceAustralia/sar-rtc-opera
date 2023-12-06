@@ -163,5 +163,3 @@ cython_debug/
 # project specific
 RTC
 rtc_otf_env
-.netrc
-credentials_earthdata.txt

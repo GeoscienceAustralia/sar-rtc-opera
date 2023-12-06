@@ -100,7 +100,8 @@ runconfig:
           apply_static_tropospheric_delay_correction: False
 
           # DEM interpolation method
-          dem_interpolation_method: biquintic
+          # Choices - 'sinc', 'bilinear', 'bicubic', 'nearest', 'biquintic'
+          dem_interpolation_method: bilinear
 
           # OPTIONAL - to control behavior of RTC module
           # (only applicable if geocode.apply_rtc is True)
