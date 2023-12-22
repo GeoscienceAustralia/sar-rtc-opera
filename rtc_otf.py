@@ -220,10 +220,10 @@ if __name__ == "__main__":
                                               SCENE_OUT_FOLDER)
 
         
-        # TODO temporary change for mosaic modes XXX
-        msk_d = {0 : 'average', 1 : 'first', 2: 'bursts_center'}
-        template_text = template_text.replace('mosaic_mode:', f'mosaic_mode: {msk_d[i]}')
-        otf_cfg["scene_prefix"] = f'{msk_d[i]}_'
+        # NOTE temporary change for mosaic modes XXX
+        # msk_d = {0 : 'average', 1 : 'first', 2: 'bursts_center'}
+        # template_text = template_text.replace('mosaic_mode:', f'mosaic_mode: {msk_d[i]}')
+        # otf_cfg["scene_prefix"] = f'{msk_d[i]}_'
 
         opera_config_name = SCENE_NAME + '.yaml'
         opera_config_path = os.path.join(otf_cfg['OPERA_config_folder'], opera_config_name)

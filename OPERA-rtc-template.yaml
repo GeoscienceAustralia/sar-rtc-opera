@@ -212,7 +212,7 @@ runconfig:
 
           mosaicking:
               # OPTIONAL - Choices: "average", "first", "bursts_center" (default)
-              mosaic_mode: bursts_center
+              mosaic_mode: first
               mosaic_geogrid: 
                   output_epsg: 3031
                   x_posting: 20
