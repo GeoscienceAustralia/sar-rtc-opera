@@ -3,7 +3,7 @@ git clone https://github.com/opera-adt/RTC.git RTC
 # build container
 cp -fr build_docker_image_otf.sh RTC
 cp -fr Dockerfile RTC/Docker
-cp -fr credentials/.netrc RTC
+cp -fr credentials RTC
 cd RTC
 sh build_docker_image_otf.sh
 cd ..

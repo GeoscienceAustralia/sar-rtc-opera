@@ -80,7 +80,6 @@ def transform_polygon(src_crs, dst_crs, geometry, always_xy=True):
     return transformed_polygon
 
 def expand_raster_with_bounds(input_raster, output_raster, old_bounds, new_bounds):
-
     # Open the raster dataset
     with rasterio.open(input_raster, 'r') as src:
         # get old bounds

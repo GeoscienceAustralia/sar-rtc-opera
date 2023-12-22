@@ -26,6 +26,10 @@ logging.basicConfig(
     level=logging.INFO,
     datefmt='%Y-%m-%d %H:%M:%S')
 
+fh = logging.FileHandler('run.log')
+logger = logging.getLogger()
+logger.addHandler(fh)
+
 
 if __name__ == "__main__":
 
@@ -54,13 +58,14 @@ if __name__ == "__main__":
     # loop through the list of scenes
     # download data -> produce backscatter -> save
     for i, scene in enumerate(otf_cfg['scenes']):
-        
+
         timing = {}
         t0 = time.time()
 
         # add the scene name to the out folder
-        otf_cfg['OPERA_output_folder'] = os.path.join(otf_cfg['OPERA_output_folder'],scene)
-        os.makedirs(otf_cfg['OPERA_output_folder'], exist_ok=True)
+        OUT_FOLDER = otf_cfg['OPERA_output_folder']
+        SCENE_OUT_FOLDER = os.path.join(OUT_FOLDER,scene)
+        os.makedirs(SCENE_OUT_FOLDER, exist_ok=True)
 
         logging.info(f'processing scene {i+1} of {len(otf_cfg["scenes"])} : {scene}')
         logging.info(f'PROCESS 1: Downloads')
@@ -212,7 +217,13 @@ if __name__ == "__main__":
         template_text = template_text.replace('OPERA_SCRATCH_FOLDER',
                                               otf_cfg['OPERA_scratch_folder'])
         template_text = template_text.replace('OPERA_OUTPUT_FOLDER',
-                                              otf_cfg['OPERA_output_folder'])
+                                              SCENE_OUT_FOLDER)
+
+        
+        # TODO temporary change for mosaic modes XXX
+        msk_d = {0 : 'average', 1 : 'first', 2: 'bursts_center'}
+        template_text = template_text.replace('mosaic_mode:', f'mosaic_mode: {msk_d[i]}')
+        otf_cfg["scene_prefix"] = f'{msk_d[i]}_'
 
         opera_config_name = SCENE_NAME + '.yaml'
         opera_config_path = os.path.join(otf_cfg['OPERA_config_folder'], opera_config_name)
@@ -222,7 +233,7 @@ if __name__ == "__main__":
         # read in the config template for the RTC runs
         with open(opera_config_path, 'r', encoding='utf8') as fin:
             opera_rtc_cfg = yaml.safe_load(fin.read())
-
+        
         # run the docker container from the command line
         logging.info(f'PROCESS 2: Produce Backscatter')
         client = docker.from_env()
@@ -237,46 +248,48 @@ if __name__ == "__main__":
         logging.info(f'Running the container, this may take some time...')
         prod_id = (opera_rtc_cfg['runconfig']
                    ['groups']['product_group']['product_id'])
-        log_path = os.path.join(otf_cfg['OPERA_output_folder'], prod_id +'.logs')
+        log_path = os.path.join(SCENE_OUT_FOLDER, prod_id +'.logs')
         logging.info(f'logs will be saved to {log_path}')
-        container = client.containers.run(f'opera/rtc:final_1.0.1', 
-                              docker_command, 
-                              volumes=volumes, 
-                              user='rtc_user',
-                              detach=True, 
-                              stdout=True, 
-                              stderr=True,
-                              stream=True)
         
-        l, t = 0, 0
-        # show the logs while the container is running
-        while container.status in ['created', 'running']:
-            # refresh every 5 seconds
-            if ((int(time.time())%5 == 0) and (int(time.time()!=t))):
-                logs = container.logs()
-                if len(logs) != l:
-                    # new logs added in container, show these here
-                    new_logs = logs[l:].decode("utf-8") 
-                    logging.info(new_logs)
-                    l = len(logs)
-                container.reload()
-                t = int(time.time())
+        if True:
+            container = client.containers.run(f'opera/rtc:final_1.0.1', 
+                                docker_command, 
+                                volumes=volumes, 
+                                user='rtc_user',
+                                detach=True, 
+                                stdout=True, 
+                                stderr=True,
+                                stream=True)
+            
+            l, t = 0, 0
+            # show the logs while the container is running
+            while container.status in ['created', 'running']:
+                # refresh every 5 seconds
+                if ((int(time.time())%5 == 0) and (int(time.time()!=t))):
+                    logs = container.logs()
+                    if len(logs) != l:
+                        # new logs added in container, show these here
+                        new_logs = logs[l:].decode("utf-8") 
+                        logging.info(new_logs)
+                        l = len(logs)
+                    container.reload()
+                    t = int(time.time())
 
-        # write the logs from the container
-        # TODO write to file in above, no need to keep
-        # the full logs in memory
-        with open(log_path, 'w') as f:
-            f.write(logs.decode("utf-8"))
+            # write the logs from the container
+            # TODO write to file in above, no need to keep
+            # the full logs in memory
+            with open(log_path, 'w') as f:
+                f.write(logs.decode("utf-8"))
 
-        # kill the container once processing is done
-        try:
-            container.kill()
-            logging.info('killing container')
-        except:
-            logging.info('container already killed')
+            # kill the container once processing is done
+            try:
+                container.kill()
+                logging.info('killing container')
+            except:
+                logging.info('container already killed')
 
         # check if the final products exist, indicating success 
-        h5_path = os.path.join(otf_cfg['OPERA_output_folder'],
+        h5_path = os.path.join(SCENE_OUT_FOLDER,
                                prod_id + '.h5')
         # keep track of success
         if os.path.exists(h5_path):
@@ -291,8 +304,8 @@ if __name__ == "__main__":
             logging.info(f'RTC Backscatter failed')
 
         # get the crs of the final scene
-        tifs = [x for x in os.listdir(otf_cfg['OPERA_output_folder']) if '.tif' in x]
-        tif = os.path.join(otf_cfg['OPERA_output_folder'],tifs[0])
+        tifs = [x for x in os.listdir(SCENE_OUT_FOLDER) if '.tif' in x]
+        tif = os.path.join(SCENE_OUT_FOLDER,tifs[0])
         with rasterio.open(tif) as src:
             trg_crs = str(src.meta['crs'])
         logging.info(f'CRS of mosaic: {trg_crs}')
@@ -303,14 +316,15 @@ if __name__ == "__main__":
         if otf_cfg['push_to_s3'] and run_success:
             logging.info(f'PROCESS 3: Push results to S3 bucket')
             bucket = otf_cfg['s3_bucket']
-            outputs = [x for x in os.listdir(otf_cfg['OPERA_output_folder']) if SCENE_NAME in x]
+            outputs = [x for x in os.listdir(SCENE_OUT_FOLDER) if SCENE_NAME in x]
             # set the path in the bucket
+            SCENE_PREFIX = '' if otf_cfg["scene_prefix"] == None else otf_cfg["scene_prefix"]
             bucket_folder = os.path.join('rtc-opera/',
                                          otf_cfg['dem_type'],
                                          f'{trg_crs.split(":")[-1]}',
-                                         f'{SCENE_NAME}')
+                                         f'{SCENE_PREFIX}{SCENE_NAME}')
             for file_ in outputs:
-                file_path = os.path.join(otf_cfg['OPERA_output_folder'],file_)
+                file_path = os.path.join(SCENE_OUT_FOLDER,file_)
                 bucket_path = os.path.join(bucket_folder,file_)
                 logging.info(f'Uploading file: {file_path}')
                 logging.info(f'Destination: {bucket_path}')
@@ -347,17 +361,16 @@ if __name__ == "__main__":
                 os.remove(file_)
             logging.info(f'Clearing SAFE directory: {SAFE_PATH}')
             shutil.rmtree(SAFE_PATH)
-            logging.info(f'Clearing directory: {otf_cfg["OPERA_output_folder"]}')
+            logging.info(f'Clearing directory: {SCENE_OUT_FOLDER}')
             try:
-                shutil.rmtree(otf_cfg['OPERA_output_folder'])
+                shutil.rmtree(SCENE_OUT_FOLDER)
                 shutil.rmtree(otf_cfg['OPERA_scratch_folder'])
             except:
-                os.system(f'sudo chmod -R 777 {otf_cfg["OPERA_output_folder"]}')
+                os.system(f'sudo chmod -R 777 {SCENE_OUT_FOLDER}')
                 os.system(f'sudo chmod -R 777 {otf_cfg["OPERA_scratch_folder"]}')
-                shutil.rmtree(otf_cfg['OPERA_output_folder'])
+                shutil.rmtree(SCENE_OUT_FOLDER)
                 shutil.rmtree(otf_cfg['OPERA_scratch_folder'])
-            # remake the outdir
-            os.makedirs(otf_cfg['OPERA_output_folder'])
+            # remake the scratch folder
             os.makedirs(otf_cfg['OPERA_scratch_folder'])
         
         t6 = time.time()
@@ -381,19 +394,10 @@ if __name__ == "__main__":
             os.remove(timing_file)
 
     logging.info(f'Run complete, {len(otf_cfg["scenes"])} scenes processed')
-    logging.info(f'{len(success['opera-rtc'])} scenes successfully processed: ')
+    logging.info(f'{len(success["opera-rtc"])} scenes successfully processed: ')
     for s in success['opera-rtc']:
         logging.info(f'{s}')
-    logging.info(f'{len(failed['opera-rtc'])} scenes FAILED: ')
+    logging.info(f'{len(failed["opera-rtc"])} scenes FAILED: ')
     for s in failed['opera-rtc']:
         logging.info(f'{s}')
     logging.info(f'Elapsed time:  {((time.time() - t_start)/60)} minutes')
-
-
-
-
-
-
-
-
-    
