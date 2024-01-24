@@ -133,7 +133,7 @@ if __name__ == "__main__":
         points = (asf_result.__dict__['umm']['SpatialExtent']['HorizontalSpatialDomain']
                 ['Geometry']['GPolygons'][0]['Boundary']['Points'])
         points = [(p['Longitude'],p['Latitude']) for p in points]
-        buffer = 1.5
+        buffer = 1
         scene_poly = Polygon(points)
         scene_poly_buf = scene_poly.buffer(buffer)
         scene_bounds = scene_poly.bounds 
@@ -201,6 +201,8 @@ if __name__ == "__main__":
             logging.info(f'Replacing DEM: {DEM_PATH}')
             os.remove(DEM_PATH)
             os.rename(DEM_ADJ_PATH, DEM_PATH)
+        else:
+            logging.info('Scene bounds are covered by downloaded DEM')
 
         t3 = time.time()
         timing['Download DEM'] = t3 - t2
@@ -241,8 +243,15 @@ if __name__ == "__main__":
         docker_command = f'rtc_s1.py {opera_config_path}'
         # We mount the data folder in the container in the same location.
         # This is so the files can be accessed by the program at the paths specified
-        # TODO mount individual volumes and dont assume all are at /data
-        volumes = [f'{otf_cfg["data_folder"]}:{otf_cfg["data_folder"]}']
+        volumes = [
+            f'{otf_cfg["OPERA_config_folder"]}:{otf_cfg["OPERA_config_folder"]}',
+            f'{otf_cfg["OPERA_scratch_folder"]}:{otf_cfg["OPERA_scratch_folder"]}',
+            f'{otf_cfg["OPERA_output_folder"]}:{otf_cfg["OPERA_output_folder"]}',
+            f'{otf_cfg["scene_folder"]}:{otf_cfg["scene_folder"]}',
+            f'{otf_cfg["precise_orbit_folder"]}:{otf_cfg["precise_orbit_folder"]}',
+            f'{otf_cfg["restituted_orbit_folder"]}:{otf_cfg["restituted_orbit_folder"]}',
+            f'{otf_cfg["dem_folder"]}:{otf_cfg["dem_folder"]}',
+            ]
         
         # setup file for logs
         logging.info(f'Running the container, this may take some time...')
