@@ -4,6 +4,7 @@ import threading
 import logging
 import boto3
 from botocore.exceptions import ClientError
+from botocore.client import Config
 import os
 import rasterio
 from rasterio.transform import from_origin
@@ -59,13 +60,25 @@ def upload_file(file_name, bucket, object_name=None):
     if object_name is None:
         object_name = os.path.basename(file_name)
 
+    # edit config to stop timeout on large files
+    config = Config(connect_timeout=500, retries={'max_attempts': 12})
+
     # Upload the file
     s3_client = boto3.client('s3')
     try:
         response = s3_client.upload_file(file_name, bucket, object_name, Callback=ProgressPercentage(file_name))
     except ClientError as e:
-        logging.error(e)
-        return False
+        logging.warning(e)
+        try:
+            logging.info('boto3.client("s3").upload_file failed')
+            logging.info('attempting upload with aws cli')
+            command = f'aws s3 cp {file_name} s3://{bucket}/{object_name}'
+            logging.info(command)
+            os.system(command)
+        except Exception as e:
+            logging.info('aws cli cp failed')
+            logging.error(e)
+            return False
 
 def transform_polygon(src_crs, dst_crs, geometry, always_xy=True):
     src_crs = pyproj.CRS(f"EPSG:{src_crs}")
@@ -108,18 +121,19 @@ def expand_raster_with_bounds(input_raster, output_raster, old_bounds, new_bound
         })
         # make a temp file
         tmp = output_raster.replace('.tif','_tmp.tif')
-        logging.debug(f'Making temp file: {tmp}')
+        logging.info(f'Making temp file: {tmp}')
         with rasterio.open(tmp, 'w', **profile) as dst:
             # Read the data from the source and write it to the destination
             data = np.full((new_height, new_width), fill_value=profile['nodata'], dtype=profile['dtype'])
             dst.write(data, 1)
         # merge the old raster into the new raster with expanded bounds 
         logging.info(f'Merging original raster and expanding bounds...')
-        rasterio.merge.merge(
-            datasets=[tmp, input_raster],
-            method='max',
-            dst_path=output_raster)
-        os.remove(tmp)
+    del data
+    rasterio.merge.merge(
+        datasets=[tmp, input_raster],
+        method='max',
+        dst_path=output_raster)
+    os.remove(tmp)
 
 def reproject_raster(in_path, out_path, crs):
     # reproject raster to project crs
