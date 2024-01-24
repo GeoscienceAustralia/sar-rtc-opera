@@ -70,7 +70,7 @@ runconfig:
       processing:
 
           # Check if ancillary input cover entirely output products
-          check_ancillary_inputs_coverage: True
+          check_ancillary_inputs_coverage: False
 
           polarization: co-pol
 
@@ -134,7 +134,7 @@ runconfig:
               apply_valid_samples_sub_swath_masking: True
 
               # OPTIONAL - Apply shadow masking
-              apply_shadow_masking: True
+              apply_shadow_masking: False
 
               # OPTIONAL -
               algorithm_type: area_projection
@@ -174,7 +174,7 @@ runconfig:
               save_dem: True
 
               # Save layover shadow mask
-              save_mask: True
+              save_mask: False
 
               # OPTIONAL - Absolute radiometric correction
               abs_rad_cal: 1
