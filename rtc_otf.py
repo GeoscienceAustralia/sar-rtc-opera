@@ -328,7 +328,9 @@ if __name__ == "__main__":
             outputs = [x for x in os.listdir(SCENE_OUT_FOLDER) if SCENE_NAME in x]
             # set the path in the bucket
             SCENE_PREFIX = '' if otf_cfg["scene_prefix"] == None else otf_cfg["scene_prefix"]
-            bucket_folder = os.path.join('rtc-opera/',
+            BUCKET_FOLDER = '' if otf_cfg["s3_bucket_folder"] == None else otf_cfg["s3_bucket_folder"]
+            bucket_folder = os.path.join(BUCKET_FOLDER,
+                                        'rtc-opera/',
                                          otf_cfg['dem_type'],
                                          f'{trg_crs.split(":")[-1]}',
                                          f'{SCENE_PREFIX}{SCENE_NAME}')

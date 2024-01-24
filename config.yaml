@@ -74,13 +74,13 @@ dem_type: glo_30
 # mostly for testing, leave blank to exclude
 scene_prefix:
 
+# TODO currently a placeholder, should be able to specify a folder in s3
+s3_bucket_folder: sar-software-comparison
+
 # s3 bucket to push the results
 # not output crs (trg_crs) is set in opera config
-# formatting will be {s3_bucket}/{opera-rtc}/{dem_type}/{trg_crs}/{prefix}{scene}/{product_id}
+# formatting will be {s3_bucket}/{s3_bucket_folder}/{opera-rtc}/{dem_type}/{trg_crs}/{prefix}{scene}/{product_id}
 s3_bucket: deant-data-public-dev
-
-# TODO currently a placeholder, should be able to specify a folder in s3
-s3_bucket_folder:
 
 # whether to push to s3
 push_to_s3: True
