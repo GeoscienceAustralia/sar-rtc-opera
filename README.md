@@ -13,11 +13,11 @@ On the fly production of sentinel-1 OPERA RTC backscatter
 - run install script (note credentials must be set on build, if these change the image will need to be rebuilt)
 - if running on a new aws instance, install python 3.9
 ```bash
-sh setup.sh
+sh setup.sh --install-python
 ```
 - if running with suitable python install
 ```bash
-sh setup.sh --no-install-python
+sh setup.sh 
 ```
 
 

@@ -8,7 +8,7 @@ cd RTC
 sh build_docker_image_otf.sh
 cd ..
 
-INSTALL_PYTHON=true
+INSTALL_PYTHON=false
 
 # Process command-line arguments
 while [[ $# -gt 0 ]]; do
