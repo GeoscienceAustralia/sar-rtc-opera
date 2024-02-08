@@ -30,14 +30,24 @@ fh = logging.FileHandler('run.log')
 logger = logging.getLogger()
 logger.addHandler(fh)
 
-
-if __name__ == "__main__":
-
+def update_timing_file(key, time, path, replace=False):
+    if os.path.exists(path):
+        with open(path, 'r') as fp:
+            timing = json.load(fp)
+    else:
+        timing = {}
+    if ((key not in timing) or replace):
+        timing[key] = time
+    # update total
+    total_t = sum([timing[k] for k in timing.keys() if k != 'Total'])
+    timing['Total'] = total_t
+    print(timing)
+    with open(path, 'w') as fp:
+        json.dump(timing, fp)
+    
+def run_process(args):
+    
     t_start = time.time()
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--config", "-c", help="path to config.yml", required=True, type=str)
-    args = parser.parse_args()
-
     # define success tracker
     success = {'opera-rtc': []}
     failed = {'opera-rtc': []}
@@ -61,11 +71,15 @@ if __name__ == "__main__":
 
         timing = {}
         t0 = time.time()
-
+        
         # add the scene name to the out folder
         OUT_FOLDER = otf_cfg['OPERA_output_folder']
         SCENE_OUT_FOLDER = os.path.join(OUT_FOLDER,scene)
         os.makedirs(SCENE_OUT_FOLDER, exist_ok=True)
+        
+        # make the timing file
+        TIMING_FILE = scene + '_timing.json'
+        TIMING_FILE_PATH = os.path.join(otf_cfg['OPERA_output_folder'],TIMING_FILE)
 
         logging.info(f'processing scene {i+1} of {len(otf_cfg["scenes"])} : {scene}')
         logging.info(f'PROCESS 1: Downloads')
@@ -107,8 +121,8 @@ if __name__ == "__main__":
                 zip_ref.extractall(otf_cfg['scene_folder'])
 
         t1 = time.time()
-        timing['Download Scene'] = t1 - t0
-        
+        update_timing_file('Download Scene', t1 - t0, TIMING_FILE_PATH)
+
         # download orbits
         logging.info(f'downloading orbit files for scene')
         prec_orb_files = download_eofs(sentinel_file=scene_zip, 
@@ -126,7 +140,7 @@ if __name__ == "__main__":
             logging.info(f'using restituted orbits: {ORBIT_PATH}')
         
         t2 = time.time()
-        timing['Download Orbits'] = t2 - t1
+        update_timing_file('Download Orbits', t2 - t1, TIMING_FILE_PATH)
 
         # download a DEM covering the region of interest
         # first get the coordinates from the asf search result
@@ -205,7 +219,7 @@ if __name__ == "__main__":
             logging.info('Scene bounds are covered by downloaded DEM')
 
         t3 = time.time()
-        timing['Download DEM'] = t3 - t2
+        update_timing_file('Download DEM', t3 - t2, TIMING_FILE_PATH)
 
         # now we have downloaded all the necessary data, we can create a
         # config for the scene we want to process
@@ -320,7 +334,7 @@ if __name__ == "__main__":
         logging.info(f'CRS of mosaic: {trg_crs}')
         
         t4 = time.time()
-        timing['RTC Processing'] = t4 - t3
+        update_timing_file('RTC Processing', t4 - t3, TIMING_FILE_PATH)
             
         if otf_cfg['push_to_s3'] and run_success:
             logging.info(f'PROCESS 3: Push results to S3 bucket')
@@ -328,8 +342,8 @@ if __name__ == "__main__":
             outputs = [x for x in os.listdir(SCENE_OUT_FOLDER) if SCENE_NAME in x]
             # set the path in the bucket
             SCENE_PREFIX = '' if otf_cfg["scene_prefix"] == None else otf_cfg["scene_prefix"]
-            BUCKET_FOLDER = '' if otf_cfg["s3_bucket_folder"] == None else otf_cfg["s3_bucket_folder"]
-            bucket_folder = os.path.join(BUCKET_FOLDER,
+            S3_BUCKET_FOLDER = '' if otf_cfg["s3_bucket_folder"] == None else otf_cfg["s3_bucket_folder"]
+            bucket_folder = os.path.join(S3_BUCKET_FOLDER,
                                         'rtc-opera/',
                                          otf_cfg['dem_type'],
                                          f'{trg_crs.split(":")[-1]}',
@@ -358,7 +372,7 @@ if __name__ == "__main__":
                             object_name=bucket_path)
                 
         t5 = time.time()
-        timing['S3 Upload'] = t5 - t4
+        update_timing_file('S3 Upload', t5 - t4, TIMING_FILE_PATH)
 
         if otf_cfg['delete_local_files']:
             logging.info(f'PROCESS 4: Clear files locally')
@@ -366,7 +380,7 @@ if __name__ == "__main__":
             for file_ in [scene_zip,
                         DEM_PATH,
                         ORBIT_PATH,
-                        opera_config_path,
+                        #opera_config_path,
                         ]:
                 logging.info(f'Deleteing {file_}')
                 os.remove(file_)
@@ -385,24 +399,20 @@ if __name__ == "__main__":
             os.makedirs(otf_cfg['OPERA_scratch_folder'])
         
         t6 = time.time()
-        timing['Delete Files'] = t6 - t5
+        update_timing_file('Delete Files', t6 - t5, TIMING_FILE_PATH)
 
         logging.info(f'Scene finished: {SCENE_NAME}')
         logging.info(f'Elapsed time: {((t6 - t0)/60)} minutes')
-        timing['Total'] = t6 - t0
 
         # push timings + logs to s3
         if otf_cfg['push_to_s3'] and run_success:
-            timing_file = SCENE_NAME + '_timing.json'
-            bucket_path = os.path.join(bucket_folder, timing_file)
-            with open(timing_file, 'w') as fp:
-                json.dump(timing, fp)
-            logging.info(f'Uploading file: {timing_file}')
+            bucket_path = os.path.join(bucket_folder, TIMING_FILE)
+            logging.info(f'Uploading file: {TIMING_FILE_PATH}')
             logging.info(f'Destination: {bucket_path}')
-            upload_file(file_name=timing_file, 
+            upload_file(file_name=TIMING_FILE_PATH, 
                         bucket=bucket, 
                         object_name=bucket_path)
-            os.remove(timing_file)
+            os.remove(TIMING_FILE_PATH)
 
     logging.info(f'Run complete, {len(otf_cfg["scenes"])} scenes processed')
     logging.info(f'{len(success["opera-rtc"])} scenes successfully processed: ')
@@ -412,3 +422,12 @@ if __name__ == "__main__":
     for s in failed['opera-rtc']:
         logging.info(f'{s}')
     logging.info(f'Elapsed time:  {((time.time() - t_start)/60)} minutes')
+    
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", "-c", help="path to config.yml", required=True, type=str)
+    args = parser.parse_args()
+
+    run_process(args)
