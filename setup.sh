@@ -8,6 +8,10 @@ cd RTC
 sh build_docker_image_otf.sh
 cd ..
 
+# copy .netrc credentials on local machine
+cp -fr credentials/.netrc ~/
+chmod og-rw ~/.netrc
+
 INSTALL_PYTHON=false
 
 # Process command-line arguments

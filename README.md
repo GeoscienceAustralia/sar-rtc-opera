@@ -3,8 +3,8 @@ On the fly production of sentinel-1 OPERA RTC backscatter
 
 # Requirments
 - Git
-- Docker (for OPERA-rtc envionment)
-- Setup expects linux instance (e.g. aws linux ami), packages installed with yum
+- Docker
+- The following setup expects fedora linux instance (e.g. aws linux ami - packages installed with yum)
 
 # Setup
 - Add user credentials to the files stored in the credentials folder
@@ -27,4 +27,18 @@ sh setup.sh
 - run process scripts
 ```bash
 sh run_process.sh
+```
+
+# Common errors
+- ensure credentials have been set before running the setup script. If this was not the case, update the credentials in the credentials folder and run the folllowing:
+```bash
+cp -fr credentials RTC
+cd RTC
+sh build_docker_image_otf.sh
+cd ..
+```
+Update credentials locally
+```bash
+cp -fr credentials/.netrc ~/
+chmod og-rw ~/.netrc
 ```

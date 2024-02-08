@@ -41,7 +41,6 @@ def update_timing_file(key, time, path, replace=False):
     # update total
     total_t = sum([timing[k] for k in timing.keys() if k != 'Total'])
     timing['Total'] = total_t
-    print(timing)
     with open(path, 'w') as fp:
         json.dump(timing, fp)
     
