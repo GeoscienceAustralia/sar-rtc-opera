@@ -3,6 +3,7 @@ import sys
 import threading
 import logging
 import boto3
+from boto3.s3.transfer import TransferConfig
 from botocore.exceptions import ClientError
 from botocore.client import Config
 import os
@@ -15,6 +16,7 @@ import zipfile
 from urllib.request import urlretrieve
 import tarfile
 import pyproj
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -61,15 +63,28 @@ def upload_file(file_name, bucket, object_name=None):
         object_name = os.path.basename(file_name)
 
     # edit config to stop timeout on large files
-    config = Config(connect_timeout=500, retries={'max_attempts': 12})
+    config = TransferConfig(multipart_threshold=1024*25, max_concurrency=10,
+                        multipart_chunksize=1024*25, use_threads=True)
+    # if any(ext in file_name for ext in ['.img','.tif','.h5']):
+    #     extra_args = {'ContentType': 'video/mp4'}
+    # else:
+    #     extra_args={}
 
     # Upload the file
     s3_client = boto3.client('s3')
     try:
-        response = s3_client.upload_file(file_name, bucket, object_name, Callback=ProgressPercentage(file_name))
-    except ClientError as e:
+        response = s3_client.upload_file(
+            file_name, 
+            bucket, 
+            object_name, 
+            Callback=ProgressPercentage(file_name),
+            # ExtraArgs=extra_args,
+            Config = config,
+            )
+    except Exception as e:
         logging.warning(e)
         try:
+            time.sleep(10)
             logging.info('boto3.client("s3").upload_file failed')
             logging.info('attempting upload with aws cli')
             command = f'aws s3 cp {file_name} s3://{bucket}/{object_name}'
