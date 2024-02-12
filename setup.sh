@@ -58,8 +58,11 @@ fi
 if [ "$INSTALL_PYTHON" = false ]; then
     # make virtual env for downloads
     source ~/.bashrc
-    python -m pip install virtualenv
-    python -m venv rtc_otf_env
+    python3 -m pip install virtualenv
+    python3 -m venv rtc_otf_env
     source rtc_otf_env/bin/activate
-    pip install -r requirements.txt
+    python3 -m pip install -r requirements.txt
 fi
+
+# ignore changes to credentials
+git update-index --assume-unchanged credentials/*
