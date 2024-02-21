@@ -107,7 +107,16 @@ def transform_polygon(src_crs, dst_crs, geometry, always_xy=True):
     transformed_polygon = Polygon(transformed_exterior)
     return transformed_polygon
 
-def expand_raster_with_bounds(input_raster, output_raster, old_bounds, new_bounds):
+def expand_raster_with_bounds(input_raster, output_raster, old_bounds, new_bounds, fill_value=None):
+    """Expand the raster to the desired bounds. Resolution and Location preserved.
+
+    Args:
+        input_raster (str): input raster path
+        output_raster (str): out raster path
+        old_bounds (tuple): current bounds
+        new_bounds (tuple): new bounds
+        fill_value (float, int, optional): Fill value to pad with. Defaults to None and nodata is used.
+    """
     # Open the raster dataset
     with rasterio.open(input_raster, 'r') as src:
         # get old bounds
@@ -139,7 +148,9 @@ def expand_raster_with_bounds(input_raster, output_raster, old_bounds, new_bound
         logging.info(f'Making temp file: {tmp}')
         with rasterio.open(tmp, 'w', **profile) as dst:
             # Read the data from the source and write it to the destination
-            data = np.full((new_height, new_width), fill_value=profile['nodata'], dtype=profile['dtype'])
+            fill_value = profile['nodata'] if fill_value is None else fill_value
+            logging.info(f'Padding new raster extent with value: {fill_value}')
+            data = np.full((new_height, new_width), fill_value=fill_value, dtype=profile['dtype'])
             dst.write(data, 1)
         # merge the old raster into the new raster with expanded bounds 
         logging.info(f'Merging original raster and expanding bounds...')

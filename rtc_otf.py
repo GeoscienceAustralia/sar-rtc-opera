@@ -31,6 +31,14 @@ logger = logging.getLogger()
 logger.addHandler(fh)
 
 def update_timing_file(key, time, path, replace=False):
+    """Update the timing json at specified path. Creates if doesn't exists
+
+    Args:
+        key (str): key for the timing dict
+        time (floar): time in seconds
+        path (str): path to the timing file
+        replace (bool, optional): Replace a value in the file if it already exists. Defaults to False.
+    """
     if os.path.exists(path):
         with open(path, 'r') as fp:
             timing = json.load(fp)
@@ -113,8 +121,8 @@ def run_process(args):
         asf_result.download(path=otf_cfg['scene_folder'], session=session)
 
         # unzip scene
-        if otf_cfg['unzip_scene']: 
-            SAFE_PATH = scene_zip.replace(".zip",".SAFE")
+        SAFE_PATH = scene_zip.replace(".zip",".SAFE")
+        if otf_cfg['unzip_scene'] and not os.path.exists(SAFE_PATH): 
             logging.info(f'unzipping scene to {SAFE_PATH}')     
             with zipfile.ZipFile(scene_zip, 'r') as zip_ref:
                 zip_ref.extractall(otf_cfg['scene_folder'])
@@ -134,7 +142,10 @@ def run_process(args):
             #download restituted orbits
             res_orb_files = download_eofs(sentinel_file=scene_zip, 
                           save_dir=otf_cfg['restituted_orbit_folder'], 
-                          orbit_type='restituted')  
+                          orbit_type='restituted',
+                          asf_user=earthdata_uid,
+                          asf_password=earthdata_pswd,
+                          )  
             ORBIT_PATH = str(res_orb_files[0])
             logging.info(f'using restituted orbits: {ORBIT_PATH}')
         
@@ -146,7 +157,7 @@ def run_process(args):
         points = (asf_result.__dict__['umm']['SpatialExtent']['HorizontalSpatialDomain']
                 ['Geometry']['GPolygons'][0]['Boundary']['Points'])
         points = [(p['Longitude'],p['Latitude']) for p in points]
-        buffer = 1
+        buffer = 3
         scene_poly = Polygon(points)
         scene_poly_buf = scene_poly.buffer(buffer)
         scene_bounds = scene_poly.bounds 
@@ -167,55 +178,60 @@ def run_process(args):
         dem_filename = SCENE_NAME + '_dem.tif'
         DEM_PATH = os.path.join(dem_dl_folder,dem_filename)
         
-        if 'REMA' not in str(otf_cfg['dem_type']).upper():
-            # get the DEM and geometry information
-            dem_data, dem_meta = stitch_dem(scene_bounds_buf,
-                            dem_name=otf_cfg['dem_type'],
-                            dst_ellipsoidal_height=False,
-                            dst_area_or_point='Point')
-            
-            # save with rasterio
-            logging.info(f'saving dem to {DEM_PATH}')
-            with rasterio.open(DEM_PATH, 'w', **dem_meta) as ds:
-                ds.write(dem_data, 1)
-                ds.update_tags(AREA_OR_POINT='Point')
-            del dem_data
-        else:
-            # handle REMA DEM
-            # download the index file for the rema dem
-            # hosted on https://data.pgc.umn.edu
-            logging.info('Downloading REMA index file')
-            rema_index_path = get_REMA_index_file(dem_dl_folder)
-            # load into gpdf
-            rema_index_df = gpd.read_file(rema_index_path)
-            # find the intersecting tiles
-            intersecting_rema_files = rema_index_df[
-                rema_index_df.geometry.intersects(scene_bounds_buf_3031)]
-            resolution = int(otf_cfg['dem_type'].split('_')[1])
-            url_list = intersecting_rema_files['fileurl'].to_list()
-            get_REMA_dem(url_list, resolution, dem_dl_folder, dem_filename, crs=4326)
-            # read the metadata from the dem
-            with rasterio.open(DEM_PATH) as src:
-                dem_meta = src.meta.copy()
+        if not os.path.exists(DEM_PATH) or otf_cfg['overwrite_dem']:
+            if 'REMA' not in str(otf_cfg['dem_type']).upper():
+                # get the DEM and geometry information
+                dem_data, dem_meta = stitch_dem(scene_bounds_buf,
+                                dem_name=otf_cfg['dem_type'],
+                                dst_ellipsoidal_height=False,
+                                dst_area_or_point='Point',
+                                merge_nodata_value=0
+                                )
+                
+                # save with rasterio
+                logging.info(f'saving dem to {DEM_PATH}')
+                with rasterio.open(DEM_PATH, 'w', **dem_meta) as ds:
+                    ds.write(dem_data, 1)
+                    ds.update_tags(AREA_OR_POINT='Point')
+                del dem_data
+            else:
+                # handle REMA DEM
+                # download the index file for the rema dem
+                # hosted on https://data.pgc.umn.edu
+                logging.info('Downloading REMA index file')
+                rema_index_path = get_REMA_index_file(dem_dl_folder)
+                # load into gpdf
+                rema_index_df = gpd.read_file(rema_index_path)
+                # find the intersecting tiles
+                intersecting_rema_files = rema_index_df[
+                    rema_index_df.geometry.intersects(scene_bounds_buf_3031)]
+                resolution = int(otf_cfg['dem_type'].split('_')[1])
+                url_list = intersecting_rema_files['fileurl'].to_list()
+                get_REMA_dem(url_list, resolution, dem_dl_folder, dem_filename, crs=4326)
+                # read the metadata from the dem
+                with rasterio.open(DEM_PATH) as src:
+                    dem_meta = src.meta.copy()
 
-        # get the bounds of the downloaded DEM
-        # the full area requested may not be covered
-        dem_bounds = rasterio.transform.array_bounds(
-            dem_meta['height'], 
-            dem_meta['width'], 
-            dem_meta['transform'])
-        logging.info(f'Downloaded DEM bounds: {dem_bounds}')
-        # the DEM not covering the full extent of the scene is an issue
-        if not box(*dem_bounds).contains_properly(box(*scene_bounds_buf)):
-            logging.warning('Downloaded DEM does not cover scene bounds, filling with nodata')
-            logging.info('Expanding the bounds of the downloaded DEM')
-            DEM_ADJ_PATH = DEM_PATH.replace('.tif','_adj.tif') #adjusted DEM path
-            expand_raster_with_bounds(DEM_PATH, DEM_ADJ_PATH, dem_bounds, scene_bounds_buf)
-            logging.info(f'Replacing DEM: {DEM_PATH}')
-            os.remove(DEM_PATH)
-            os.rename(DEM_ADJ_PATH, DEM_PATH)
+            # get the bounds of the downloaded DEM
+            # the full area requested may not be covered
+            dem_bounds = rasterio.transform.array_bounds(
+                dem_meta['height'], 
+                dem_meta['width'], 
+                dem_meta['transform'])
+            logging.info(f'Downloaded DEM bounds: {dem_bounds}')
+            # the DEM not covering the full extent of the scene is an issue
+            if not box(*dem_bounds).contains_properly(box(*scene_bounds_buf)):
+                logging.warning('Downloaded DEM does not cover scene bounds, filling with nodata')
+                logging.info('Expanding the bounds of the downloaded DEM')
+                DEM_ADJ_PATH = DEM_PATH.replace('.tif','_adj.tif') #adjusted DEM path
+                expand_raster_with_bounds(DEM_PATH, DEM_ADJ_PATH, dem_bounds, scene_bounds_buf, fill_value=0)
+                logging.info(f'Replacing DEM: {DEM_PATH}')
+                os.remove(DEM_PATH)
+                os.rename(DEM_ADJ_PATH, DEM_PATH)
+            else:
+                logging.info('Scene bounds are covered by downloaded DEM')
         else:
-            logging.info('Scene bounds are covered by downloaded DEM')
+            logging.info(f'Using existing DEM : {DEM_PATH}')
 
         t3 = time.time()
         update_timing_file('Download DEM', t3 - t2, TIMING_FILE_PATH)
@@ -273,7 +289,7 @@ def run_process(args):
         log_path = os.path.join(SCENE_OUT_FOLDER, prod_id +'.logs')
         logging.info(f'logs will be saved to {log_path}')
         
-        if True:
+        if not otf_cfg["skip_rtc"]:
             container = client.containers.run(f'opera/rtc:final_1.0.1', 
                                 docker_command, 
                                 volumes=volumes, 
