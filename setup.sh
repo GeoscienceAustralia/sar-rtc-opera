@@ -66,3 +66,4 @@ fi
 
 # ignore changes to credentials
 git update-index --assume-unchanged credentials/*
+git update-index --assume-unchanged credentials/.netrc
