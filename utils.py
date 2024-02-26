@@ -65,12 +65,7 @@ def upload_file(file_name, bucket, object_name=None):
     # edit config to stop timeout on large files
     config = TransferConfig(multipart_threshold=1024*25, max_concurrency=10,
                         multipart_chunksize=1024*25, use_threads=True)
-    # if any(ext in file_name for ext in ['.img','.tif','.h5']):
-    #     extra_args = {'ContentType': 'video/mp4'}
-    # else:
-    #     extra_args={}
 
-    # Upload the file
     s3_client = boto3.client('s3')
     try:
         response = s3_client.upload_file(
@@ -78,7 +73,6 @@ def upload_file(file_name, bucket, object_name=None):
             bucket, 
             object_name, 
             Callback=ProgressPercentage(file_name),
-            # ExtraArgs=extra_args,
             Config = config,
             )
     except Exception as e:
