@@ -120,6 +120,9 @@ def run_process(args):
         scene_zip = os.path.join(otf_cfg['scene_folder'], SCENE_NAME + '.zip')
         asf_result.download(path=otf_cfg['scene_folder'], session=session)
 
+        # apply the ETAD corrections to the SLC
+        # if otf_cfg['apply_ETAD']:
+            
         # unzip scene
         SAFE_PATH = scene_zip.replace(".zip",".SAFE")
         if otf_cfg['unzip_scene'] and not os.path.exists(SAFE_PATH): 
@@ -157,7 +160,7 @@ def run_process(args):
         points = (asf_result.__dict__['umm']['SpatialExtent']['HorizontalSpatialDomain']
                 ['Geometry']['GPolygons'][0]['Boundary']['Points'])
         points = [(p['Longitude'],p['Latitude']) for p in points]
-        buffer = 3
+        buffer = 0.5
         scene_poly = Polygon(points)
         scene_poly_buf = scene_poly.buffer(buffer)
         scene_bounds = scene_poly.bounds 
