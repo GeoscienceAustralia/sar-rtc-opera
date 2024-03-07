@@ -113,6 +113,13 @@ restituted_orbit_folder: /data/osv/RESORB
 # directory where DEM will be saved - a sub folder is made for each DEM type
 dem_folder: /data/dem
 
+# Apply ETAD corrections to the slc
+# Note - These must be available locally
+apply_ETAD : False
+
+# Locally accessible folder containing ETAD files
+ETAD_folder : /data/ETAD
+
 # overwrite the dem if it already exists
 overwrite_dem : True
 
