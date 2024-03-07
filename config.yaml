@@ -41,7 +41,7 @@ scenes: [
         # 'S1A_IW_SLC__1SSV_20230803T083315_20230803T083342_049708_05FA2F_3DCE', # Done 10m
         # 'S1A_IW_SLC__1SSH_20230908T083317_20230908T083344_050233_060BEC_D8D5', # Done 10m
         # 'S1A_IW_SLC__1SSV_20231014T083317_20231014T083345_050758_061DE7_512C', # Done 10m
-        # 'S1A_IW_SLC__1SSH_20231119T083317_20231119T083345_051283_062FEC_0B2C', # Done 10m
+        'S1A_IW_SLC__1SSH_20231119T083317_20231119T083345_051283_062FEC_0B2C', # Done 10m
         # 'S1A_IW_SLC__1SSV_20231225T083315_20231225T083343_051808_064216_090C', # Done 10m
         # 'S1A_IW_SLC__1SSH_20240106T083314_20240106T083342_051983_064812_8D7E', # Done 10m 
         # 'S1A_IW_SLC__1SSV_20240118T083314_20240118T083341_052158_064E01_F2FB', # Done 10m 
@@ -77,6 +77,10 @@ scenes: [
         # 'S1A_IW_SLC__1SDV_20221208T191403_20221208T191430_046244_058998_28A3', # Done 20m
         # 'S1A_IW_SLC__1SDV_20221220T191402_20221220T191429_046419_058F94_70A0', # Done 20m
         ]
+
+# the name of the software. This will form part of the path
+# where the products are writted
+software : rtc-opera
 
 # the template for the OPERA-RTC backscatter products
 # variables are set in this file for each scene
@@ -135,11 +139,11 @@ dem_type: glo_30
 scene_prefix:
 
 # specify the folder in the s3 bucket
-s3_bucket_folder: sar-software-comparison-20m
+s3_bucket_folder: sar-software-comparison-10m-opera-corrected
 
 # s3 bucket to push the results
 # note, output crs (trg_crs) is set in opera config
-# formatting will be {s3_bucket}/{s3_bucket_folder}/{opera-rtc}/{dem_type}/{trg_crs}/{prefix}{scene}/file
+# formatting will be {s3_bucket}/{s3_bucket_folder}/{software}/{dem_type}/{trg_crs}/{prefix}{scene}/file
 s3_bucket: deant-data-public-dev
 
 # whether to push to s3

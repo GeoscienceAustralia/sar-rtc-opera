@@ -362,7 +362,7 @@ def run_process(args):
             SCENE_PREFIX = '' if otf_cfg["scene_prefix"] == None else otf_cfg["scene_prefix"]
             S3_BUCKET_FOLDER = '' if otf_cfg["s3_bucket_folder"] == None else otf_cfg["s3_bucket_folder"]
             bucket_folder = os.path.join(S3_BUCKET_FOLDER,
-                                        'rtc-opera/',
+                                         otf_cfg["software"],
                                          otf_cfg['dem_type'],
                                          f'{trg_crs.split(":")[-1]}',
                                          f'{SCENE_PREFIX}{SCENE_NAME}')
