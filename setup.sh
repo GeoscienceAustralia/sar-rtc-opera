@@ -12,16 +12,16 @@ cd ..
 cp -fr credentials/.netrc ~/
 chmod og-rw ~/.netrc
 
-INSTALL_PYTHON=false
+INSTALL_CONDA=false
 
 # Process command-line arguments
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        -p|--install-python)
-            INSTALL_PYTHON=true
+        -p|--install-conda)
+            INSTALL_CONDA=true
             ;;
-        -np|--no-install-python)
-            INSTALL_PYTHON=false
+        -np|--no-install-conda)
+            INSTALL_CONDA=false
             ;;
         *)
             echo "Unknown option: $1"
@@ -32,37 +32,14 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Python installation, needed on aws image for management
-if [ "$INSTALL_PYTHON" = true ]; then
+if [ "$INSTALL_CONDA" = true ]; then
     echo "Installing Python3.9..."
-    # Your Python installation commands here
-    sudo yum install gcc openssl-devel bzip2-devel libffi-devel zlib-devel
-    wget https://www.python.org/ftp/python/3.9.6/Python-3.9.6.tgz
-    tar -xvf Python-3.9.6.tgz
-    cd Python-3.9.6
-    ./configure --enable-optimizations
-    sudo make
-    sudo make altinstall
-    python3.9 --version
-    cd ..
-    sudo rm -r Python-3.9.6
-    sudo rm -r Python-3.9.6.tgz
-
-    # make virtual env for downloads
-    source ~/.bashrc
-    python3.9 -m pip install virtualenv
-    python3.9 -m venv rtc_otf_env
-    source rtc_otf_env/bin/activate
-    pip install -r requirements.txt
+    wget https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Linux-x86_64.sh
+    echo "yes" | Mambaforge-Linux-x86_64.sh -y
 fi
 
-if [ "$INSTALL_PYTHON" = false ]; then
-    # make virtual env for downloads
-    source ~/.bashrc
-    python3 -m pip install virtualenv
-    python3 -m venv rtc_otf_env
-    source rtc_otf_env/bin/activate
-    python3 -m pip install -r requirements.txt
-fi
+# create the environment
+conda env create --file environment.yml
 
 # ignore changes to credentials
 git update-index --assume-unchanged credentials/*

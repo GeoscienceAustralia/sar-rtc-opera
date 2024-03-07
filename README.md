@@ -11,11 +11,11 @@ On the fly production of sentinel-1 OPERA RTC backscatter
     - Earthdata credentials - https://urs.earthdata.nasa.gov/users/new
     - Add these to both credentials_earthdata.yaml and .netrc file
 - run install script (note credentials must be set on build, if these change the image will need to be rebuilt)
-- if running on a new aws instance, install python 3.9
+- if conda is not installed on instamce
 ```bash
-sh setup.sh --install-python
+sh setup.sh --install-conda
 ```
-- if running with suitable python install
+- if running with suitable conda/mamba install
 ```bash
 sh setup.sh 
 ```
@@ -26,7 +26,7 @@ sh setup.sh
 - Change the OPERA-rtc-template.yaml. This is the opera template used for all scenes specified
 - run process scripts
 ```bash
-sh run_process.sh
+source run_process.sh
 ```
 
 # Common errors
