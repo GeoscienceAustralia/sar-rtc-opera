@@ -102,7 +102,7 @@ def transform_polygon(src_crs, dst_crs, geometry, always_xy=True):
     return transformed_polygon
 
 def expand_raster_with_bounds(input_raster, output_raster, old_bounds, new_bounds, fill_value=None):
-    """Expand the raster to the desired bounds. Resolution and Location preserved.
+    """Expand the raster to the desired bounds. Resolution and Location are preserved.
 
     Args:
         input_raster (str): input raster path
@@ -155,7 +155,17 @@ def expand_raster_with_bounds(input_raster, output_raster, old_bounds, new_bound
         dst_path=output_raster)
     os.remove(tmp)
 
-def reproject_raster(in_path, out_path, crs):
+def reproject_raster(in_path: str, out_path: str, crs: int):
+    """Reproject a raster to the desired crs
+
+    Args:
+        in_path (str): path to src raster
+        out_path (str): save path of reproj raster
+        crs (int): crs e.g. 3031
+
+    Returns:
+        str: save path of reproj raster
+    """
     # reproject raster to project crs
     with rasterio.open(in_path) as src:
         src_crs = src.crs
