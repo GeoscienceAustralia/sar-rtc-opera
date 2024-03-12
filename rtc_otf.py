@@ -9,12 +9,8 @@ from shapely.geometry import Polygon, box
 import rasterio
 from dem_stitcher import stitch_dem
 import docker
-from utils import (upload_file, 
-        find_files, 
-        transform_polygon,
-        expand_raster_with_bounds,
-        get_REMA_index_file,
-        get_REMA_dem)
+from utils import *
+from etad import *
 import time
 import shutil
 import json
@@ -116,20 +112,42 @@ def run_process(args):
         logging.info(f'downloading scene')
         session = asf.ASFSession()
         session.auth_with_creds(earthdata_uid,earthdata_pswd)
-        SCENE_NAME = asf_results[0].__dict__['umm']['GranuleUR'].split('-')[0]
+        SCENE_NAME = asf_result.__dict__['umm']['GranuleUR'].split('-')[0]
+        POLARIZATION = asf_result.properties['polarization']
+        POLARIZATION_TYPE = 'dual-pol' if len(POLARIZATION) > 2 else 'co-pol' # string for template value
         scene_zip = os.path.join(otf_cfg['scene_folder'], SCENE_NAME + '.zip')
         asf_result.download(path=otf_cfg['scene_folder'], session=session)
-
-        # apply the ETAD corrections to the SLC
-        # if otf_cfg['apply_ETAD']:
             
         # unzip scene
-        SAFE_PATH = scene_zip.replace(".zip",".SAFE")
-        if otf_cfg['unzip_scene'] and not os.path.exists(SAFE_PATH): 
-            logging.info(f'unzipping scene to {SAFE_PATH}')     
+        ORIGINAL_SAFE_PATH = scene_zip.replace(".zip",".SAFE")
+        if (otf_cfg['unzip_scene'] or otf_cfg['apply_ETAD']) and not os.path.exists(ORIGINAL_SAFE_PATH): 
+            logging.info(f'unzipping scene to {ORIGINAL_SAFE_PATH}')     
             with zipfile.ZipFile(scene_zip, 'r') as zip_ref:
                 zip_ref.extractall(otf_cfg['scene_folder'])
 
+        # apply the ETAD corrections to the SLC
+        if otf_cfg['apply_ETAD']:
+            logging.info('Applying ETAD corrections')
+            logging.info(f'loading copernicus credentials from: {otf_cfg["copernicus_credentials"]}')
+            with open(otf_cfg['copernicus_credentials'], "r", encoding='utf8') as f:
+                copernicus_cfg = yaml.safe_load(f.read())
+                copernicus_uid = copernicus_cfg['login']
+                copernicus_pswd = copernicus_cfg['password']
+            etad_path = download_scene_etad(
+                SCENE_NAME, 
+                copernicus_uid, 
+                copernicus_pswd, etad_dir=otf_cfg['ETAD_folder'])
+            ETAD_SCENE_FOLDER = f'{otf_cfg["scene_folder"]}_ETAD'
+            logging.info(f'making new directory for etad corrected slc : {ETAD_SCENE_FOLDER}')
+            ETAD_SAFE = apply_etad_correction(
+                ORIGINAL_SAFE_PATH, 
+                etad_path, 
+                out_dir=ETAD_SCENE_FOLDER,
+                nthreads=otf_cfg['gdal_threads'])
+        
+        # set as the safe file for processing
+        SAFE_PATH = ORIGINAL_SAFE_PATH if not otf_cfg['apply_ETAD'] else ETAD_SAFE
+        
         t1 = time.time()
         update_timing_file('Download Scene', t1 - t0, TIMING_FILE_PATH)
 
@@ -252,8 +270,9 @@ def run_process(args):
                                               otf_cfg['OPERA_scratch_folder'])
         template_text = template_text.replace('OPERA_OUTPUT_FOLDER',
                                               SCENE_OUT_FOLDER)
+        template_text = template_text.replace('POLARIZATION_TYPE',
+                                              POLARIZATION_TYPE)
 
-        
         # NOTE temporary change for mosaic modes XXX
         # msk_d = {0 : 'average', 1 : 'first', 2: 'bursts_center'}
         # template_text = template_text.replace('mosaic_mode:', f'mosaic_mode: {msk_d[i]}')
@@ -268,8 +287,8 @@ def run_process(args):
         with open(opera_config_path, 'r', encoding='utf8') as fin:
             opera_rtc_cfg = yaml.safe_load(fin.read())
         
-        # run the docker container from the command line
         logging.info(f'PROCESS 2: Produce Backscatter')
+        # run the docker container from the command line\
         client = docker.from_env()
         # the command we run in the container. 
         docker_command = f'rtc_s1.py {opera_config_path}'
@@ -284,6 +303,9 @@ def run_process(args):
             f'{otf_cfg["restituted_orbit_folder"]}:{otf_cfg["restituted_orbit_folder"]}',
             f'{otf_cfg["dem_folder"]}:{otf_cfg["dem_folder"]}',
             ]
+        
+        if otf_cfg['apply_ETAD']:
+            volumes.append(f'{otf_cfg["scene_folder"]}_ETAD:{otf_cfg["scene_folder"]}_ETAD')
         
         # setup file for logs
         logging.info(f'Running the container, this may take some time...')
@@ -402,8 +424,11 @@ def run_process(args):
                         ]:
                 logging.info(f'Deleteing {file_}')
                 os.remove(file_)
-            logging.info(f'Clearing SAFE directory: {SAFE_PATH}')
-            shutil.rmtree(SAFE_PATH)
+            logging.info(f'Clearing SAFE directory: {ORIGINAL_SAFE_PATH}')
+            shutil.rmtree(ORIGINAL_SAFE_PATH)
+            if otf_cfg['appy_ETAD']:
+                logging.info(f'Clearing ETAD corrected SAFE directory: {ORIGINAL_SAFE_PATH}')
+                shutil.rmtree(ORIGINAL_SAFE_PATH)
             logging.info(f'Clearing directory: {SCENE_OUT_FOLDER}')
             try:
                 shutil.rmtree(SCENE_OUT_FOLDER)
