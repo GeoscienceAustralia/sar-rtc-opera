@@ -33,7 +33,7 @@ done
 
 # Python installation, needed on aws image for management
 if [ "$INSTALL_CONDA" = true ]; then
-    echo "Installing Python3.9..."
+    echo "Installing mamba environment manager."
     wget https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Linux-x86_64.sh
     echo "yes" | Mambaforge-Linux-x86_64.sh -y
 fi
