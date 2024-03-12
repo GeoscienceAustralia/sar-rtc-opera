@@ -13,11 +13,11 @@ On the fly production of sentinel-1 OPERA RTC backscatter
     - Copernicus Dataspace - https://dataspace.copernicus.eu/
         - Add these to *credentials_copernicus.yaml*
 - run install script (note credentials must be set on build, if these change the image will need to be rebuilt)
-- if conda is not installed on instamce
+- if conda is not installed on instance (mamba will be installed)
 ```bash
 sh setup.sh --install-conda
 ```
-- if running with suitable conda/mamba install
+- if running with suitable conda install
 ```bash
 sh setup.sh 
 ```
