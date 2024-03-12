@@ -72,7 +72,7 @@ runconfig:
           # Check if ancillary input cover entirely output products
           check_ancillary_inputs_coverage: True
 
-          polarization:
+          polarization: POLARIZATION_TYPE
 
           # Options to run geo2rdr
           geo2rdr:
