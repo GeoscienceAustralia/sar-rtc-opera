@@ -9,7 +9,9 @@ On the fly production of sentinel-1 OPERA RTC backscatter
 # Setup
 - Add user credentials to the files stored in the credentials folder
     - Earthdata credentials - https://urs.earthdata.nasa.gov/users/new
-    - Add these to both credentials_earthdata.yaml and .netrc file
+        - Add these to both *credentials_earthdata.yaml* and *.netrc* file
+    - Copernicus Dataspace - https://dataspace.copernicus.eu/
+        - Add these to *credentials_copernicus.yaml*
 - run install script (note credentials must be set on build, if these change the image will need to be rebuilt)
 - if conda is not installed on instamce
 ```bash
@@ -42,3 +44,13 @@ Update credentials locally
 cp -fr credentials/.netrc ~/
 chmod og-rw ~/.netrc
 ```
+- Error when downloding orbit files using sentineleof
+```bash
+ValueError: max() arg is an empty sequence
+```
+Try changing the *.netrc* credentials to copernicus CDSE (https://pypi.org/project/sentineleof/). Then run the following to replace the *.netrc* file.
+```bash
+cp -fr credentials/.netrc ~/
+chmod og-rw ~/.netrc
+```
+
