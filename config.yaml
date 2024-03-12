@@ -41,7 +41,7 @@ scenes: [
         # 'S1A_IW_SLC__1SSV_20230803T083315_20230803T083342_049708_05FA2F_3DCE', # Done 10m
         # 'S1A_IW_SLC__1SSH_20230908T083317_20230908T083344_050233_060BEC_D8D5', # Done 10m
         # 'S1A_IW_SLC__1SSV_20231014T083317_20231014T083345_050758_061DE7_512C', # Done 10m
-        'S1A_IW_SLC__1SSH_20231119T083317_20231119T083345_051283_062FEC_0B2C', # Done 10m
+        # 'S1A_IW_SLC__1SSH_20231119T083317_20231119T083345_051283_062FEC_0B2C', # Done 10m
         # 'S1A_IW_SLC__1SSV_20231225T083315_20231225T083343_051808_064216_090C', # Done 10m
         # 'S1A_IW_SLC__1SSH_20240106T083314_20240106T083342_051983_064812_8D7E', # Done 10m 
         # 'S1A_IW_SLC__1SSV_20240118T083314_20240118T083341_052158_064E01_F2FB', # Done 10m 
@@ -102,6 +102,9 @@ earthdata_credentials: credentials/credentials_earthdata.yaml
 # location of aws credentials 
 aws_credentials: credentials/credentials_aws.yaml
 
+# location of copernicus data space ecosystem credentials
+copernicus_credentials: credentials/credentials_copernicus.yaml
+
 # directory to save scenes
 scene_folder: /data/scenes
 
@@ -119,13 +122,17 @@ dem_folder: /data/dem
 
 # Apply ETAD corrections to the slc
 # Note - These must be available locally
+# A new folder {scene_folder}_ETAD will be created
 apply_ETAD : False
 
-# Locally accessible folder containing ETAD files
+# number of gdal threads to process the ETAD file with
+gdal_threads : 4
+
+# Folder to download and store the ETAD files
 ETAD_folder : /data/ETAD
 
 # overwrite the dem if it already exists
-overwrite_dem : True
+overwrite_dem : False
 
 # type of dem to download for each scene
 # list of valid dems in https://pypi.org/project/dem-stitcher/
@@ -139,7 +146,7 @@ dem_type: glo_30
 scene_prefix:
 
 # specify the folder in the s3 bucket
-s3_bucket_folder: sar-software-comparison-10m-opera-corrected
+s3_bucket_folder: sar-software-comparison-10m
 
 # s3 bucket to push the results
 # note, output crs (trg_crs) is set in opera config
