@@ -178,14 +178,12 @@ def run_process(args):
         points = (asf_result.__dict__['umm']['SpatialExtent']['HorizontalSpatialDomain']
                 ['Geometry']['GPolygons'][0]['Boundary']['Points'])
         points = [(p['Longitude'],p['Latitude']) for p in points]
-        buffer = 0.5
+        buffer = 0.3
         scene_poly = Polygon(points)
         scene_poly_buf = scene_poly.buffer(buffer)
         scene_bounds = scene_poly.bounds 
         scene_bounds_buf = scene_poly.buffer(buffer).bounds #buffered
         logging.info(f'Scene bounds : {scene_bounds}')
-        logging.info(f'Downloding DEM for  bounds : {scene_bounds_buf}')
-        logging.info(f'type of DEM being downloaded : {otf_cfg["dem_type"]}')
 
         # transform the scene geometries to 3031
         scene_poly_3031 = transform_polygon(4326, 3031, scene_poly)
@@ -193,18 +191,30 @@ def run_process(args):
         scene_bounds_3031 = transform_polygon(4326, 3031, box(*scene_bounds))
         scene_bounds_buf_3031 = transform_polygon(4326, 3031, box(*scene_bounds_buf))
 
-        # make folders and set filenames
-        dem_dl_folder = os.path.join(otf_cfg['dem_folder'],otf_cfg['dem_type'])
-        os.makedirs(dem_dl_folder, exist_ok=True)
-        dem_filename = SCENE_NAME + '_dem.tif'
-        DEM_PATH = os.path.join(dem_dl_folder,dem_filename)
+        if otf_cfg['dem_path'] is not None:
+            # set the dem to be the one specified if supplied
+            logging.info(f'using DEM path specified : {otf_cfg["dem_path"]}')
+            if not os.path.exists(otf_cfg['dem_path']):
+                raise FileExistsError(f'{otf_cfg["dem_path"]} c')
+            else:
+                DEM_PATH = otf_cfg['dem_path']
+                dem_filename = os.path.basename(DEM_PATH)
+                otf_cfg['dem_folder'] = os.path.dirname(DEM_PATH) # set the dem folder
+        else:
+            # make folders and set filenames
+            dem_dl_folder = os.path.join(otf_cfg['dem_folder'],otf_cfg['dem_type'])
+            os.makedirs(dem_dl_folder, exist_ok=True)
+            dem_filename = SCENE_NAME + '_dem.tif'
+            DEM_PATH = os.path.join(dem_dl_folder,dem_filename)
         
-        if not os.path.exists(DEM_PATH) or otf_cfg['overwrite_dem']:
+        if (otf_cfg['overwrite_dem']) or (not os.path.exists(DEM_PATH)) or (otf_cfg['dem_path'] is None):
+            logging.info(f'Downloding DEM for  bounds : {scene_bounds_buf}')
+            logging.info(f'type of DEM being downloaded : {otf_cfg["dem_type"]}')
             if 'REMA' not in str(otf_cfg['dem_type']).upper():
                 # get the DEM and geometry information
                 dem_data, dem_meta = stitch_dem(scene_bounds_buf,
                                 dem_name=otf_cfg['dem_type'],
-                                dst_ellipsoidal_height=False,
+                                dst_ellipsoidal_height=True,
                                 dst_area_or_point='Point',
                                 merge_nodata_value=0
                                 )
@@ -426,7 +436,7 @@ def run_process(args):
                 os.remove(file_)
             logging.info(f'Clearing SAFE directory: {ORIGINAL_SAFE_PATH}')
             shutil.rmtree(ORIGINAL_SAFE_PATH)
-            if otf_cfg['appy_ETAD']:
+            if otf_cfg['apply_ETAD']:
                 logging.info(f'Clearing ETAD corrected SAFE directory: {ORIGINAL_SAFE_PATH}')
                 shutil.rmtree(ORIGINAL_SAFE_PATH)
             logging.info(f'Clearing directory: {SCENE_OUT_FOLDER}')
