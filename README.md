@@ -12,6 +12,8 @@ On the fly production of sentinel-1 OPERA RTC backscatter
         - Add these to both *credentials_earthdata.yaml* and *.netrc* file
     - Copernicus Dataspace - https://dataspace.copernicus.eu/
         - Add these to *credentials_copernicus.yaml*
+    - AWS credentials 
+        - Add these to *credentials_aws.yaml* to enable DEM download and upoad to desired destination 
 - run install script (note credentials must be set on build, if these change the image will need to be rebuilt)
 - if conda is not installed on instance (mamba will be installed)
 ```bash
