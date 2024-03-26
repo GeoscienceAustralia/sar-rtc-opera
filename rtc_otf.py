@@ -178,18 +178,27 @@ def run_process(args):
         points = (asf_result.__dict__['umm']['SpatialExtent']['HorizontalSpatialDomain']
                 ['Geometry']['GPolygons'][0]['Boundary']['Points'])
         points = [(p['Longitude'],p['Latitude']) for p in points]
-        buffer = 0.3
         scene_poly = Polygon(points)
-        scene_poly_buf = scene_poly.buffer(buffer)
         scene_bounds = scene_poly.bounds 
-        scene_bounds_buf = scene_poly.buffer(buffer).bounds #buffered
         logging.info(f'Scene bounds : {scene_bounds}')
 
-        # transform the scene geometries to 3031
-        scene_poly_3031 = transform_polygon(4326, 3031, scene_poly)
-        scene_poly_buf_3031 = transform_polygon(4326, 3031, scene_poly_buf)
-        scene_bounds_3031 = transform_polygon(4326, 3031, box(*scene_bounds))
-        scene_bounds_buf_3031 = transform_polygon(4326, 3031, box(*scene_bounds_buf))
+        # if we are at high latitudes we need to correct the bounds due to the skewed box shape
+        if (scene_bounds[1] < -50) or (scene_bounds[3] < -50):
+            # Southern Hemisphere
+            logging.info(f'Adjusting scene bounds due to warping at high latitude')
+            scene_poly = adjust_scene_poly_at_extreme_lat(scene_bounds, 4326, 3031)
+            scene_bounds = scene_poly.bounds 
+            logging.info(f'Adjusted scene bounds : {scene_bounds}')
+        if (scene_bounds[1] > 50) or (scene_bounds[3] > 50):
+            # Northern Hemisphere
+            logging.info(f'Adjusting scene bounds due to warping at high latitude')
+            scene_poly = adjust_scene_poly_at_extreme_lat(scene_bounds, 4326, 3995)
+            scene_bounds = scene_poly.bounds 
+            logging.info(f'Adjusted scene bounds : {scene_bounds}')
+
+        buffer = 0.3
+        scene_poly_buf = scene_poly.buffer(buffer)
+        scene_bounds_buf = scene_poly.buffer(buffer).bounds #buffered
 
         if otf_cfg['dem_path'] is not None:
             # set the dem to be the one specified if supplied
@@ -233,6 +242,9 @@ def run_process(args):
                 rema_index_path = get_REMA_index_file(dem_dl_folder)
                 # load into gpdf
                 rema_index_df = gpd.read_file(rema_index_path)
+                # transform the scene geometries to 3031
+                scene_poly_3031 = transform_polygon(4326, 3031, scene_poly)
+                scene_bounds_buf_3031 = transform_polygon(4326, 3031, box(*scene_bounds_buf))
                 # find the intersecting tiles
                 intersecting_rema_files = rema_index_df[
                     rema_index_df.geometry.intersects(scene_bounds_buf_3031)]
