@@ -139,14 +139,14 @@ def run_process(args):
                 copernicus_pswd, etad_dir=otf_cfg['ETAD_folder'])
             ETAD_SCENE_FOLDER = f'{otf_cfg["scene_folder"]}_ETAD'
             logging.info(f'making new directory for etad corrected slc : {ETAD_SCENE_FOLDER}')
-            ETAD_SAFE = apply_etad_correction(
+            ETAD_SAFE_PATH = apply_etad_correction(
                 ORIGINAL_SAFE_PATH, 
                 etad_path, 
                 out_dir=ETAD_SCENE_FOLDER,
                 nthreads=otf_cfg['gdal_threads'])
         
         # set as the safe file for processing
-        SAFE_PATH = ORIGINAL_SAFE_PATH if not otf_cfg['apply_ETAD'] else ETAD_SAFE
+        SAFE_PATH = ORIGINAL_SAFE_PATH if not otf_cfg['apply_ETAD'] else ETAD_SAFE_PATH
         
         t1 = time.time()
         update_timing_file('Download Scene', t1 - t0, TIMING_FILE_PATH)
@@ -438,20 +438,20 @@ def run_process(args):
 
         if otf_cfg['delete_local_files']:
             logging.info(f'PROCESS 4: Clear files locally')
-            #clear downloads
-            for file_ in [scene_zip,
-                        DEM_PATH,
-                        ORBIT_PATH,
-                        #opera_config_path,
-                        ]:
-                logging.info(f'Deleteing {file_}')
-                os.remove(file_)
-            logging.info(f'Clearing SAFE directory: {ORIGINAL_SAFE_PATH}')
-            shutil.rmtree(ORIGINAL_SAFE_PATH)
+            # #clear downloads
+            # for file_ in [scene_zip,
+            #             DEM_PATH,
+            #             ORBIT_PATH,
+            #             #opera_config_path,
+            #             ]:
+            #     logging.info(f'Deleteing {file_}')
+            #     os.remove(file_)
+            # logging.info(f'Clearing SAFE directory: {ORIGINAL_SAFE_PATH}')
+            # shutil.rmtree(ORIGINAL_SAFE_PATH)
             if otf_cfg['apply_ETAD']:
-                logging.info(f'Clearing ETAD corrected SAFE directory: {ORIGINAL_SAFE_PATH}')
-                shutil.rmtree(ORIGINAL_SAFE_PATH)
-            logging.info(f'Clearing directory: {SCENE_OUT_FOLDER}')
+                logging.info(f'Clearing ETAD corrected SAFE directory: {ETAD_SAFE_PATH}')
+                shutil.rmtree(ETAD_SAFE_PATH)
+                logging.info(f'Clearing directory: {ETAD_SAFE_PATH}')
             try:
                 shutil.rmtree(SCENE_OUT_FOLDER)
                 shutil.rmtree(otf_cfg['OPERA_scratch_folder'])
