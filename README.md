@@ -4,6 +4,7 @@ On the fly production of sentinel-1 OPERA RTC backscatter
 # Requirments
 - Git
 - Docker
+- Conda (mamba best for speed)
 - The following setup expects fedora linux instance (e.g. aws linux ami - packages installed with yum)
 
 # Setup
