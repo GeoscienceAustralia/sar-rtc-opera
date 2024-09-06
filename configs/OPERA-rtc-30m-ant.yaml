@@ -76,8 +76,8 @@ runconfig:
 
           # Options to run geo2rdr
           geo2rdr:
-              threshold: 1.0e-7
-              numiter: 50
+              threshold: 1.0e-8
+              numiter: 25
 
           # Options to run rdr2geo
           rdr2geo:
@@ -94,10 +94,10 @@ runconfig:
           apply_rtc: True
 
           # Apply bistatic delay correction
-          apply_bistatic_delay_correction: True
+          apply_bistatic_delay_correction: False
 
           # Apply static tropospheric delay correction
-          apply_static_tropospheric_delay_correction: True
+          apply_static_tropospheric_delay_correction: False
 
           # DEM interpolation method
           # Choices - 'sinc', 'bilinear', 'bicubic', 'nearest', 'biquintic'
@@ -143,10 +143,10 @@ runconfig:
               memory_mode: auto
 
               # OPTIONAL - Processing upsampling factor applied to input geogrid
-              geogrid_upsampling: 1
+              geogrid_upsampling: 2
                
               # Save the incidence angle
-              save_incidence_angle: True
+              save_incidence_angle: False
                
               # Save the local-incidence angle
               save_local_inc_angle: True
@@ -197,11 +197,11 @@ runconfig:
               estimated_geometric_accuracy_stddev_y:
 
               bursts_geogrid:
-                  output_epsg: 
-                  x_posting: 20
-                  y_posting: 20
-                  x_snap: 20
-                  y_snap: 20
+                  output_epsg: 3031
+                  x_posting: 30
+                  y_posting: 30
+                  x_snap: 30
+                  y_snap: 30
                   top_left:
                       x:
                       y:
@@ -214,11 +214,11 @@ runconfig:
               # OPTIONAL - Choices: "average", "first", "bursts_center" (default)
               mosaic_mode: first
               mosaic_geogrid: 
-                  output_epsg: 
-                  x_posting: 20
-                  y_posting: 20
-                  x_snap: 20
-                  y_snap: 20
+                  output_epsg: 3031 
+                  x_posting: 30
+                  y_posting: 30
+                  x_snap: 30
+                  y_snap: 30
                   top_left:
                       x:
                       y:

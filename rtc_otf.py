@@ -438,16 +438,16 @@ def run_process(args):
 
         if otf_cfg['delete_local_files']:
             logging.info(f'PROCESS 4: Clear files locally')
-            # #clear downloads
-            # for file_ in [scene_zip,
-            #             DEM_PATH,
-            #             ORBIT_PATH,
-            #             #opera_config_path,
-            #             ]:
-            #     logging.info(f'Deleteing {file_}')
-            #     os.remove(file_)
-            # logging.info(f'Clearing SAFE directory: {ORIGINAL_SAFE_PATH}')
-            # shutil.rmtree(ORIGINAL_SAFE_PATH)
+            #clear downloads
+            for file_ in [scene_zip,
+                        DEM_PATH,
+                        ORBIT_PATH,
+                        opera_config_path,
+                        ]:
+                logging.info(f'Deleteing {file_}')
+                os.remove(file_)
+            logging.info(f'Clearing SAFE directory: {ORIGINAL_SAFE_PATH}')
+            shutil.rmtree(ORIGINAL_SAFE_PATH)
             if otf_cfg['apply_ETAD']:
                 logging.info(f'Clearing ETAD corrected SAFE directory: {ETAD_SAFE_PATH}')
                 shutil.rmtree(ETAD_SAFE_PATH)

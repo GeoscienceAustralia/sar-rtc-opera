@@ -1,4 +1,4 @@
-git clone --branch v1.0.1 --single-branch  https://github.com/opera-adt/RTC.git RTC_2
+git clone --branch v1.0.1 --single-branch  https://github.com/opera-adt/RTC.git RTC
 
 # build container
 cp -fr build_docker_image_otf.sh RTC

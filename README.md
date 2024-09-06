@@ -33,6 +33,15 @@ sh setup.sh
 ```bash
 source run_process.sh
 ```
+- On an AWS instance with a large number of jobs, run with nohup to ensure process is not killed if an SSH disconnection occurs.
+```bash
+conda activate rtc_opera
+nohup ./run_process.sh
+```
+- in a new terminal, run the following to trace the output
+```bash
+tail -f nohup.out
+```
 
 # Common errors
 - ensure credentials have been set before running the setup script. If this was not the case, update the credentials in the credentials folder and run the folllowing:
