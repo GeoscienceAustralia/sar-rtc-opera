@@ -76,8 +76,8 @@ runconfig:
 
           # Options to run geo2rdr
           geo2rdr:
-              threshold: 1.0e-8
-              numiter: 25
+              threshold: 1.0e-7
+              numiter: 50
 
           # Options to run rdr2geo
           rdr2geo:
@@ -143,7 +143,7 @@ runconfig:
               memory_mode: auto
 
               # OPTIONAL - Processing upsampling factor applied to input geogrid
-              geogrid_upsampling: 2
+              geogrid_upsampling: 1
                
               # Save the incidence angle
               save_incidence_angle: False
