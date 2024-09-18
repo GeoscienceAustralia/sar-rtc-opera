@@ -164,3 +164,7 @@ cython_debug/
 RTC
 rtc_otf_env
 data
+credentials/credentials_aws.yaml
+credentials/credentials_copernicus.yaml
+credentials/credentials_earthdata.yaml
+credentials/.netrc
