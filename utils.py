@@ -87,7 +87,7 @@ def upload_file(file_name, bucket, object_name=None):
         except Exception as e:
             logging.info('aws cli cp failed')
             logging.error(e)
-            return False
+            raise e
 
 def transform_polygon(src_crs, dst_crs, geometry, always_xy=True):
     src_crs = pyproj.CRS(f"EPSG:{src_crs}")
