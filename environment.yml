@@ -233,7 +233,7 @@ dependencies:
       - click-plugins==1.1.1
       - cligj==0.7.2
       - dateparser==1.2.0
-      - dem-stitcher==2.5.5
+      - git+https://github.com/abradley60/dem-stitcher.git@dem_fill 
       - docker==7.0.0
       - fiona==1.9.5
       - geopandas==0.14.3

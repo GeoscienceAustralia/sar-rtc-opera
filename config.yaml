@@ -1,7 +1,7 @@
 # list of scenes to download and process
 scenes: [
         # # Antarctica - Maitri Station (-70.76683, 11.7308)
-        # 'S1B_IW_SLC__1SSH_20190327T195016_20190327T195045_015544_01D236_9504', 
+        'S1B_IW_SLC__1SSH_20190327T195016_20190327T195045_015544_01D236_9504', 
         # 'S1B_IW_SLC__1SSH_20190526T195018_20190526T195048_016419_01EE8D_53BC', 
         # 'S1B_IW_SLC__1SSH_20190315T195015_20190315T195045_015369_01CC73_DB8B', 
         # # Antarctica - Bharati Station (-69.4068, 76.19525)
@@ -26,7 +26,7 @@ scenes: [
         # 'S1A_IW_SLC__1SDV_20191028T131928_20191028T131947_029659_0360CA_A1A0',
         # 'S1A_IW_SLC__1SDH_20161201T131103_20161201T131131_014186_016EB7_F766',
         # # Australia - Yaragadee (-29.0474, 115.3461) Descending (Only Avail)
-        # 'S1B_IW_SLC__1SDV_20211201T214143_20211201T214210_029837_038FD8_81C3', # Done 10m
+        # 'S1B_IW_SLC__1SDV_20211201T214143_20211201T214210_029837_038FD8_81C3',
         # 'S1B_IW_SLC__1SDV_20211201T214208_20211201T214240_029837_038FD8_8B37', 
         # 'S1B_IW_SLC__1SDV_20211213T214143_20211213T214210_030012_039555_8753', 
         # Australia - Queensland Forest (-25.533333 147.533333)
@@ -34,18 +34,18 @@ scenes: [
         # 'S1A_IW_SLC__1SDV_20220202T084138_20220202T084206_041731_04F740_197D',
         # 'S1A_IW_SLC__1SDV_20220202T084204_20220202T084231_041731_04F740_400F', 
         # # Australia - SURAT QLD corner reflector (-27.0252,150.5759) - ASCENDING MODE (REQUIRED)
-        # 'S1A_IW_SLC__1SSV_20230312T083311_20230312T083339_047608_05B7B4_9E47', # Done 10m
-        # 'S1A_IW_SLC__1SSH_20230417T083309_20230417T083337_048133_05C96C_990D', # Done 10m
-        # 'S1A_IW_SLC__1SSV_20230523T083310_20230523T083338_048658_05DA2F_A8C3', # Done 10m
-        # 'S1A_IW_SLC__1SSH_20230722T083317_20230722T083345_049533_05F4C7_7C1C', # Done 10m
-        # 'S1A_IW_SLC__1SSV_20230803T083315_20230803T083342_049708_05FA2F_3DCE', # Done 10m
-        # 'S1A_IW_SLC__1SSH_20230908T083317_20230908T083344_050233_060BEC_D8D5', # Done 10m
+        # 'S1A_IW_SLC__1SSV_20230312T083311_20230312T083339_047608_05B7B4_9E47',
+        # 'S1A_IW_SLC__1SSH_20230417T083309_20230417T083337_048133_05C96C_990D',
+        # 'S1A_IW_SLC__1SSV_20230523T083310_20230523T083338_048658_05DA2F_A8C3',
+        # 'S1A_IW_SLC__1SSH_20230722T083317_20230722T083345_049533_05F4C7_7C1C',
+        # 'S1A_IW_SLC__1SSV_20230803T083315_20230803T083342_049708_05FA2F_3DCE',
+        # 'S1A_IW_SLC__1SSH_20230908T083317_20230908T083344_050233_060BEC_D8D5',
         # 'S1A_IW_SLC__1SSV_20231014T083317_20231014T083345_050758_061DE7_512C', 
-        # 'S1A_IW_SLC__1SSH_20231119T083317_20231119T083345_051283_062FEC_0B2C', # Done 10m
-        # 'S1A_IW_SLC__1SSV_20231225T083315_20231225T083343_051808_064216_090C', # Done 10m
-        # 'S1A_IW_SLC__1SSH_20240106T083314_20240106T083342_051983_064812_8D7E', # Done 10m
-        # 'S1A_IW_SLC__1SSV_20240118T083314_20240118T083341_052158_064E01_F2FB', # Done 10m
-        'S1A_IW_SLC__1SSH_20240130T083313_20240130T083341_052333_0653F0_B544', 
+        # 'S1A_IW_SLC__1SSH_20231119T083317_20231119T083345_051283_062FEC_0B2C',
+        # 'S1A_IW_SLC__1SSV_20231225T083315_20231225T083343_051808_064216_090C',
+        # 'S1A_IW_SLC__1SSH_20240106T083314_20240106T083342_051983_064812_8D7E',
+        # 'S1A_IW_SLC__1SSV_20240118T083314_20240118T083341_052158_064E01_F2FB', 
+        # 'S1A_IW_SLC__1SSH_20240130T083313_20240130T083341_052333_0653F0_B544', 
         # # Australia - QLD Forest time series (sigma0) 
         # 'S1A_IW_SLC__1SDV_20220109T084205_20220109T084232_041381_04EB86_4CA4', 
         # 'S1A_IW_SLC__1SDV_20220214T084204_20220214T084231_041906_04FD5B_3E6A', 
@@ -79,12 +79,13 @@ scenes: [
         ]
 
 # the name of the software. This will form part of the path
-# where the products are writted
-software : rtc-opera-dem-fix-ellipsoid
+# where the products are written
+# rtc-opera, rtc-opera-etad, rtc-opera-no-ac
+software : rtc-opera
 
 # the template for the OPERA-RTC backscatter products
 # variables are set in this file for each scene
-OPERA_rtc_remplate: configs/OPERA-rtc-10m-aus.yaml
+OPERA_rtc_remplate: configs/OPERA-rtc.yaml
 
 # folder to save all the configs we generate for each run
 OPERA_config_folder: /data/OPERA/config
@@ -95,6 +96,15 @@ OPERA_scratch_folder: /data/OPERA/scratch
 # save directory for final opera products
 # a new folder is made for each scene
 OPERA_output_folder: /data/OPERA/outdir
+
+# resolution in x direction (m)
+OPERA_x_resolution: 20
+
+# resolution in y direction (m)
+OPERA_y_resolution: 20
+
+# output crs (e.g. 3031) leave blank for default utm zone
+OPERA_crs: 3031
 
 # location of earthdata credentials to download data.
 earthdata_credentials: credentials/credentials_earthdata.yaml
@@ -150,7 +160,8 @@ dem_type: glo_30
 scene_prefix:
 
 # specify the folder in the s3 bucket
-s3_bucket_folder: sar-software-comparison-10m
+# sar-software-comparison-Xm, qld-rainforest-timeseries-Xm-2022
+s3_bucket_folder: sar-comparison-study/rtc-scenes/sar-software-comparison-20m
 
 # s3 bucket to push the results
 # note, output crs (trg_crs) is set in opera config

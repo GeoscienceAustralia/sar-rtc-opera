@@ -59,7 +59,7 @@ runconfig:
 
           # Optional. Save secondary layers (e.g., inc. angle) within 
           # the HDF5 file
-          save_secondary_layers_as_hdf5: True
+          save_secondary_layers_as_hdf5: False
 
           # Save RTC-S1 metadata in the HDF5 format
           # Optional for `output_imagery_format` equal to 'ENVI', 'GTiff', or
@@ -76,8 +76,8 @@ runconfig:
 
           # Options to run geo2rdr
           geo2rdr:
-              threshold: 1.0e-8
-              numiter: 25
+              threshold: 1.0e-7
+              numiter: 50
 
           # Options to run rdr2geo
           rdr2geo:
@@ -94,10 +94,10 @@ runconfig:
           apply_rtc: True
 
           # Apply bistatic delay correction
-          apply_bistatic_delay_correction: False
+          apply_bistatic_delay_correction: True
 
           # Apply static tropospheric delay correction
-          apply_static_tropospheric_delay_correction: False
+          apply_static_tropospheric_delay_correction: True
 
           # DEM interpolation method
           # Choices - 'sinc', 'bilinear', 'bicubic', 'nearest', 'biquintic'
@@ -143,38 +143,38 @@ runconfig:
               memory_mode: auto
 
               # OPTIONAL - Processing upsampling factor applied to input geogrid
-              geogrid_upsampling: 2
+              geogrid_upsampling: 1
                
               # Save the incidence angle
-              save_incidence_angle: False
+              save_incidence_angle: True
                
               # Save the local-incidence angle
-              save_local_inc_angle: False
+              save_local_inc_angle: True
 
               # Save the projection angle
               save_projection_angle: False
 
               # Save the RTC ANF compuated with the projection angle method
-              save_rtc_anf_projection_angle: False
+              save_rtc_anf_projection_angle: True
 
               # Save the range slope angle
               save_range_slope: False
 
               # Save the number of looks used to compute RTC-S1
-              save_nlooks: False
+              save_nlooks: True
                
               # Save the RTC area normalization factor (ANF) used to generate
               # the RTC product
-              save_rtc_anf: False
+              save_rtc_anf: True
 
               # Save the RTC area normalization factor (ANF) gamma0 to sigma0
-              save_rtc_anf_gamma0_to_sigma0: False
+              save_rtc_anf_gamma0_to_sigma0: True
 
               # Save interpolated DEM used to compute RTC-S1
-              save_dem: False
+              save_dem: True
 
               # Save layover shadow mask
-              save_mask: False
+              save_mask: True
 
               # OPTIONAL - Absolute radiometric correction
               abs_rad_cal: 1
@@ -197,11 +197,11 @@ runconfig:
               estimated_geometric_accuracy_stddev_y:
 
               bursts_geogrid:
-                  output_epsg: 3031
-                  x_posting: 20
-                  y_posting: 20
-                  x_snap: 20
-                  y_snap: 20
+                  output_epsg: TARGET_CRS
+                  x_posting: X_RESOLUTION
+                  y_posting: Y_RESOLUTION
+                  x_snap: X_RESOLUTION
+                  y_snap: Y_RESOLUTION
                   top_left:
                       x:
                       y:
@@ -214,11 +214,11 @@ runconfig:
               # OPTIONAL - Choices: "average", "first", "bursts_center" (default)
               mosaic_mode: first
               mosaic_geogrid: 
-                  output_epsg: 3031 
-                  x_posting: 20
-                  y_posting: 20
-                  x_snap: 20
-                  y_snap: 20
+                  output_epsg: TARGET_CRS
+                  x_posting: X_RESOLUTION
+                  y_posting: Y_RESOLUTION
+                  x_snap: X_RESOLUTION
+                  y_snap: Y_RESOLUTION
                   top_left:
                       x:
                       y:

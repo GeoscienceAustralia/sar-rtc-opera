@@ -197,7 +197,6 @@ def run_process(args):
             logging.info(f'Adjusted scene bounds : {scene_bounds}')
 
         buffer = 0.3
-        scene_poly_buf = scene_poly.buffer(buffer)
         scene_bounds_buf = scene_poly.buffer(buffer).bounds #buffered
 
         if otf_cfg['dem_path'] is not None:
@@ -209,6 +208,7 @@ def run_process(args):
                 DEM_PATH = otf_cfg['dem_path']
                 dem_filename = os.path.basename(DEM_PATH)
                 otf_cfg['dem_folder'] = os.path.dirname(DEM_PATH) # set the dem folder
+                otf_cfg['overwrite_dem'] = False # do not overwrite dem
         else:
             # make folders and set filenames
             dem_dl_folder = os.path.join(otf_cfg['dem_folder'],otf_cfg['dem_type'])
@@ -219,60 +219,21 @@ def run_process(args):
         if (otf_cfg['overwrite_dem']) or (not os.path.exists(DEM_PATH)) or (otf_cfg['dem_path'] is None):
             logging.info(f'Downloding DEM for  bounds : {scene_bounds_buf}')
             logging.info(f'type of DEM being downloaded : {otf_cfg["dem_type"]}')
-            if 'REMA' not in str(otf_cfg['dem_type']).upper():
-                # get the DEM and geometry information
-                dem_data, dem_meta = stitch_dem(scene_bounds_buf,
-                                dem_name=otf_cfg['dem_type'],
-                                dst_ellipsoidal_height=True,
-                                dst_area_or_point='Point',
-                                merge_nodata_value=0
-                                )
-                
-                # save with rasterio
-                logging.info(f'saving dem to {DEM_PATH}')
-                with rasterio.open(DEM_PATH, 'w', **dem_meta) as ds:
-                    ds.write(dem_data, 1)
-                    ds.update_tags(AREA_OR_POINT='Point')
-                del dem_data
-            else:
-                # handle REMA DEM
-                # download the index file for the rema dem
-                # hosted on https://data.pgc.umn.edu
-                logging.info('Downloading REMA index file')
-                rema_index_path = get_REMA_index_file(dem_dl_folder)
-                # load into gpdf
-                rema_index_df = gpd.read_file(rema_index_path)
-                # transform the scene geometries to 3031
-                scene_poly_3031 = transform_polygon(4326, 3031, scene_poly)
-                scene_bounds_buf_3031 = transform_polygon(4326, 3031, box(*scene_bounds_buf))
-                # find the intersecting tiles
-                intersecting_rema_files = rema_index_df[
-                    rema_index_df.geometry.intersects(scene_bounds_buf_3031)]
-                resolution = int(otf_cfg['dem_type'].split('_')[1])
-                url_list = intersecting_rema_files['fileurl'].to_list()
-                get_REMA_dem(url_list, resolution, dem_dl_folder, dem_filename, crs=4326)
-                # read the metadata from the dem
-                with rasterio.open(DEM_PATH) as src:
-                    dem_meta = src.meta.copy()
-
-            # get the bounds of the downloaded DEM
-            # the full area requested may not be covered
-            dem_bounds = rasterio.transform.array_bounds(
-                dem_meta['height'], 
-                dem_meta['width'], 
-                dem_meta['transform'])
-            logging.info(f'Downloaded DEM bounds: {dem_bounds}')
-            # the DEM not covering the full extent of the scene is an issue
-            if not box(*dem_bounds).contains_properly(box(*scene_bounds_buf)):
-                logging.warning('Downloaded DEM does not cover scene bounds, filling with nodata')
-                logging.info('Expanding the bounds of the downloaded DEM')
-                DEM_ADJ_PATH = DEM_PATH.replace('.tif','_adj.tif') #adjusted DEM path
-                expand_raster_with_bounds(DEM_PATH, DEM_ADJ_PATH, dem_bounds, scene_bounds_buf, fill_value=0)
-                logging.info(f'Replacing DEM: {DEM_PATH}')
-                os.remove(DEM_PATH)
-                os.rename(DEM_ADJ_PATH, DEM_PATH)
-            else:
-                logging.info('Scene bounds are covered by downloaded DEM')
+            # get the DEM and geometry information
+            dem_data, dem_meta = stitch_dem(scene_bounds_buf,
+                            dem_name=otf_cfg['dem_type'],
+                            dst_ellipsoidal_height=True,
+                            dst_area_or_point='Point',
+                            merge_nodata_value=0,
+                            fill_to_bounds=True,
+                            )
+            
+            # save with rasterio
+            logging.info(f'saving dem to {DEM_PATH}')
+            with rasterio.open(DEM_PATH, 'w', **dem_meta) as ds:
+                ds.write(dem_data, 1)
+                ds.update_tags(AREA_OR_POINT='Point')
+            del dem_data
         else:
             logging.info(f'Using existing DEM : {DEM_PATH}')
 
@@ -283,7 +244,7 @@ def run_process(args):
         # config for the scene we want to process
         with open(otf_cfg['OPERA_rtc_remplate'], 'r') as f:
             template_text = f.read()
-        # search for the strings we want to replace
+        # search for the strings we want to replaces
         template_text = template_text.replace('SAFE_PATH',SAFE_PATH)
         template_text = template_text.replace('ORBIT_PATH',ORBIT_PATH)
         template_text = template_text.replace('DEM_PATH',DEM_PATH)
@@ -294,11 +255,13 @@ def run_process(args):
                                               SCENE_OUT_FOLDER)
         template_text = template_text.replace('POLARIZATION_TYPE',
                                               POLARIZATION_TYPE)
-
-        # NOTE temporary change for mosaic modes XXX
-        # msk_d = {0 : 'average', 1 : 'first', 2: 'bursts_center'}
-        # template_text = template_text.replace('mosaic_mode:', f'mosaic_mode: {msk_d[i]}')
-        # otf_cfg["scene_prefix"] = f'{msk_d[i]}_'
+        template_text = template_text.replace('X_RESOLUTION',
+                                              otf_cfg['OPERA_x_resolution'])
+        template_text = template_text.replace('Y_RESOLUTION',
+                                              otf_cfg['OPERA_y_resolution'])
+        TARGET_CRS = otf_cfg['OPERA_crs'] if otf_cfg['OPERA_crs'] is not None else ''
+        template_text = template_text.replace('TARGET_CRS',
+                                              TARGET_CRS)
 
         opera_config_name = SCENE_NAME + '.yaml'
         opera_config_path = os.path.join(otf_cfg['OPERA_config_folder'], opera_config_name)

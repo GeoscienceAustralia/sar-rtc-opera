@@ -59,7 +59,7 @@ runconfig:
 
           # Optional. Save secondary layers (e.g., inc. angle) within 
           # the HDF5 file
-          save_secondary_layers_as_hdf5: True
+          save_secondary_layers_as_hdf5: False
 
           # Save RTC-S1 metadata in the HDF5 format
           # Optional for `output_imagery_format` equal to 'ENVI', 'GTiff', or
@@ -94,10 +94,10 @@ runconfig:
           apply_rtc: True
 
           # Apply bistatic delay correction
-          apply_bistatic_delay_correction: True
+          apply_bistatic_delay_correction: False
 
           # Apply static tropospheric delay correction
-          apply_static_tropospheric_delay_correction: True
+          apply_static_tropospheric_delay_correction: False
 
           # DEM interpolation method
           # Choices - 'sinc', 'bilinear', 'bicubic', 'nearest', 'biquintic'
@@ -197,11 +197,11 @@ runconfig:
               estimated_geometric_accuracy_stddev_y:
 
               bursts_geogrid:
-                  output_epsg: 
-                  x_posting: 20
-                  y_posting: 20
-                  x_snap: 20
-                  y_snap: 20
+                  output_epsg: TARGET_CRS
+                  x_posting: X_RESOLUTION
+                  y_posting: Y_RESOLUTION
+                  x_snap: X_RESOLUTION
+                  y_snap: Y_RESOLUTION
                   top_left:
                       x:
                       y:
@@ -214,11 +214,11 @@ runconfig:
               # OPTIONAL - Choices: "average", "first", "bursts_center" (default)
               mosaic_mode: first
               mosaic_geogrid: 
-                  output_epsg: 
-                  x_posting: 20
-                  y_posting: 20
-                  x_snap: 20
-                  y_snap: 20
+                  output_epsg: TARGET_CRS
+                  x_posting: X_RESOLUTION
+                  y_posting: Y_RESOLUTION
+                  x_snap: X_RESOLUTION
+                  y_snap: Y_RESOLUTION
                   top_left:
                       x:
                       y:
