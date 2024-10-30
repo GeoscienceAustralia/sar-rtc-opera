@@ -1,21 +1,21 @@
 # list of scenes to download and process
 scenes: [
-        # # Antarctica - Maitri Station (-70.76683, 11.7308)
-        'S1B_IW_SLC__1SSH_20190327T195016_20190327T195045_015544_01D236_9504', 
+        # # Antarctica - Maitri Station (-70.76683, 11.7308) - 10m
+        # 'S1B_IW_SLC__1SSH_20190327T195016_20190327T195045_015544_01D236_9504', 
         # 'S1B_IW_SLC__1SSH_20190526T195018_20190526T195048_016419_01EE8D_53BC', 
         # 'S1B_IW_SLC__1SSH_20190315T195015_20190315T195045_015369_01CC73_DB8B', 
-        # # Antarctica - Bharati Station (-69.4068, 76.19525)
+        # # Antarctica - Bharati Station (-69.4068, 76.19525) - 10m
         # 'S1B_IW_SLC__1SSH_20190223T222639_20190223T222706_015079_01C2E9_1D63', 
         # 'S1A_IW_SLC__1SSH_20190605T222724_20190605T222751_027550_031BE1_AD3A', 
-        # # Antarctica - Law Dome (-66.163448 113.66396)
-        # 'S1B_IW_SLC__1SSH_20211204T123606_20211204T123635_029875_039105_E7EC', 
+        # # Antarctica - Law Dome (-66.163448 113.66396) - 20m
+        'S1B_IW_SLC__1SSH_20211204T123606_20211204T123635_029875_039105_E7EC', 
         # 'S1A_IW_SLC__1SSH_20211210T123647_20211210T123716_040946_04DCF0_9FBA', 
         # 'S1B_IW_SLC__1SSH_20211216T123605_20211216T123634_030050_03968D_9501', 
-        # # Antarctica - Ross Island (-77.7018, 166.7541)
+        # # Antarctica - Ross Island (-77.7018, 166.7541) - 20m
         # 'S1A_IW_SLC__1SSH_20211208T124745_20211208T124815_040917_04DBED_5CFF', 
         # 'S1A_IW_SLC__1SSH_20211220T124745_20211220T124815_041092_04E1C2_0475', 
         # 'S1A_IW_SLC__1SSH_20220101T124744_20220101T124814_041267_04E7A2_1DAD', 
-        # Antarctica - Heard/McDonald Island (-53.1057, 73.543) 
+        # Antarctica - Heard/McDonald Island (-53.1057, 73.543) - 20m
         # 'S1A_IW_SLC__1SSH_20220103T141935_20220103T142005_041297_04E8B4_9B44', 
         # 'S1A_IW_SLC__1SSH_20220108T142747_20220108T142815_041370_04EB2C_4E64', 
         # 'S1A_IW_SLC__1SSH_20220115T141935_20220115T142005_041472_04EE7C_9E3D', 
@@ -25,7 +25,7 @@ scenes: [
         # # Antarctica - Antimeridian (-75, 180) approx
         # 'S1A_IW_SLC__1SDV_20191028T131928_20191028T131947_029659_0360CA_A1A0',
         # 'S1A_IW_SLC__1SDH_20161201T131103_20161201T131131_014186_016EB7_F766',
-        # # Australia - Yaragadee (-29.0474, 115.3461) Descending (Only Avail)
+        # # Australia - Yaragadee (-29.0474, 115.3461) Descending (Only Avail) - 10m
         # 'S1B_IW_SLC__1SDV_20211201T214143_20211201T214210_029837_038FD8_81C3',
         # 'S1B_IW_SLC__1SDV_20211201T214208_20211201T214240_029837_038FD8_8B37', 
         # 'S1B_IW_SLC__1SDV_20211213T214143_20211213T214210_030012_039555_8753', 
@@ -33,7 +33,7 @@ scenes: [
         # 'S1A_IW_SLC__1SDV_20220121T193807_20220121T193834_041563_04F181_5804', 
         # 'S1A_IW_SLC__1SDV_20220202T084138_20220202T084206_041731_04F740_197D',
         # 'S1A_IW_SLC__1SDV_20220202T084204_20220202T084231_041731_04F740_400F', 
-        # # Australia - SURAT QLD corner reflector (-27.0252,150.5759) - ASCENDING MODE (REQUIRED)
+        # # Australia - SURAT QLD corner reflector (-27.0252,150.5759) - ASCENDING MODE (10m)
         # 'S1A_IW_SLC__1SSV_20230312T083311_20230312T083339_047608_05B7B4_9E47',
         # 'S1A_IW_SLC__1SSH_20230417T083309_20230417T083337_048133_05C96C_990D',
         # 'S1A_IW_SLC__1SSV_20230523T083310_20230523T083338_048658_05DA2F_A8C3',
@@ -146,7 +146,7 @@ gdal_threads : 4
 ETAD_folder : /data/ETAD
 
 # overwrite the dem if it already exists
-overwrite_dem : True
+overwrite_dem : False
 
 # type of dem to download for each scene
 # list of valid dems in https://pypi.org/project/dem-stitcher/
@@ -161,7 +161,7 @@ scene_prefix:
 
 # specify the folder in the s3 bucket
 # sar-software-comparison-Xm, qld-rainforest-timeseries-Xm-2022
-s3_bucket_folder: sar-comparison-study/rtc-scenes/sar-software-comparison-20m
+s3_bucket_folder: sar-comparison-study/s1-rtc-scenes/sar-software-comparison-20m
 
 # s3 bucket to push the results
 # note, output crs (trg_crs) is set in opera config

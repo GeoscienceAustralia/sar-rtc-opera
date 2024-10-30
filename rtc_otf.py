@@ -196,7 +196,7 @@ def run_process(args):
             scene_bounds = scene_poly.bounds 
             logging.info(f'Adjusted scene bounds : {scene_bounds}')
 
-        buffer = 0.3
+        buffer = 0.1
         scene_bounds_buf = scene_poly.buffer(buffer).bounds #buffered
 
         if otf_cfg['dem_path'] is not None:
@@ -216,7 +216,7 @@ def run_process(args):
             dem_filename = SCENE_NAME + '_dem.tif'
             DEM_PATH = os.path.join(dem_dl_folder,dem_filename)
         
-        if (otf_cfg['overwrite_dem']) or (not os.path.exists(DEM_PATH)) or (otf_cfg['dem_path'] is None):
+        if (otf_cfg['overwrite_dem']) or ((not os.path.exists(DEM_PATH)) or (otf_cfg['dem_path'] is None)):
             logging.info(f'Downloding DEM for  bounds : {scene_bounds_buf}')
             logging.info(f'type of DEM being downloaded : {otf_cfg["dem_type"]}')
             # get the DEM and geometry information
@@ -256,12 +256,12 @@ def run_process(args):
         template_text = template_text.replace('POLARIZATION_TYPE',
                                               POLARIZATION_TYPE)
         template_text = template_text.replace('X_RESOLUTION',
-                                              otf_cfg['OPERA_x_resolution'])
+                                              str(otf_cfg['OPERA_x_resolution']))
         template_text = template_text.replace('Y_RESOLUTION',
-                                              otf_cfg['OPERA_y_resolution'])
+                                              str(otf_cfg['OPERA_y_resolution']))
         TARGET_CRS = otf_cfg['OPERA_crs'] if otf_cfg['OPERA_crs'] is not None else ''
         template_text = template_text.replace('TARGET_CRS',
-                                              TARGET_CRS)
+                                              str(TARGET_CRS))
 
         opera_config_name = SCENE_NAME + '.yaml'
         opera_config_path = os.path.join(otf_cfg['OPERA_config_folder'], opera_config_name)
@@ -414,15 +414,9 @@ def run_process(args):
             if otf_cfg['apply_ETAD']:
                 logging.info(f'Clearing ETAD corrected SAFE directory: {ETAD_SAFE_PATH}')
                 shutil.rmtree(ETAD_SAFE_PATH)
-                logging.info(f'Clearing directory: {ETAD_SAFE_PATH}')
-            try:
-                shutil.rmtree(SCENE_OUT_FOLDER)
-                shutil.rmtree(otf_cfg['OPERA_scratch_folder'])
-            except:
-                os.system(f'sudo chmod -R 777 {SCENE_OUT_FOLDER}')
-                os.system(f'sudo chmod -R 777 {otf_cfg["OPERA_scratch_folder"]}')
-                shutil.rmtree(SCENE_OUT_FOLDER)
-                shutil.rmtree(otf_cfg['OPERA_scratch_folder'])
+            logging.info(f'Clearing directory: {ETAD_SAFE_PATH}')
+            shutil.rmtree(SCENE_OUT_FOLDER)
+            shutil.rmtree(otf_cfg['OPERA_scratch_folder'])
             # remake the scratch folder
             os.makedirs(otf_cfg['OPERA_scratch_folder'])
         
