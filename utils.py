@@ -278,12 +278,11 @@ def adjust_scene_poly_at_extreme_lat(bbox, src_crs, ref_crs, delta=0.1):
     # Generate points along the top side
     top_side = [(x, y_max) for x in list(np.arange(x_min, x_max, delta)) + [x_max]]    
     # Generate points along the right side
-    right_side = [(x_max, y) for y in list(np.arange(y_max - delta, y_min-delta, -delta)) + [y_min]]
+    right_side = [(x_max, y) for y in list(np.arange(y_max, y_min, -delta)) + [y_min]]
     # Generate points along the bottom side
-    bottom_side = [(x, y_min) for x in list(np.arange(x_max - delta, x_min-delta, -delta)) + [x_min]]
-    list(np.arange(y_min + delta, y_max, delta)) + [y_max]
+    bottom_side = [(x, y_min) for x in list(np.arange(x_max, x_min, -delta)) + [x_min]]
     # Generate points along the left side
-    left_side = [(x_min, y) for y in list(np.arange(y_min + delta, y_max, delta)) + [y_max]]
+    left_side = [(x_min, y) for y in list(np.arange(y_min, y_max, delta)) + [y_max]]
     # Combine all sides' points
     all_points = top_side + right_side + bottom_side + left_side
     # convert to a polygon 

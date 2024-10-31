@@ -414,7 +414,7 @@ def run_process(args):
             if otf_cfg['apply_ETAD']:
                 logging.info(f'Clearing ETAD corrected SAFE directory: {ETAD_SAFE_PATH}')
                 shutil.rmtree(ETAD_SAFE_PATH)
-            logging.info(f'Clearing directory: {ETAD_SAFE_PATH}')
+                logging.info(f'Clearing directory: {ETAD_SAFE_PATH}')
             shutil.rmtree(SCENE_OUT_FOLDER)
             shutil.rmtree(otf_cfg['OPERA_scratch_folder'])
             # remake the scratch folder
