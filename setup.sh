@@ -44,7 +44,3 @@ fi
 
 # create the environment
 conda env create --file environment.yml
-
-# ignore changes to credentials
-git update-index --assume-unchanged credentials/*
-git update-index --assume-unchanged credentials/.netrc
