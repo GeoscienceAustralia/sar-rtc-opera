@@ -182,23 +182,6 @@ def run_process(args):
         scene_bounds = scene_poly.bounds 
         logging.info(f'Scene bounds : {scene_bounds}')
 
-        # if we are at high latitudes we need to correct the bounds due to the skewed box shape
-        if (scene_bounds[1] < -50) or (scene_bounds[3] < -50):
-            # Southern Hemisphere
-            logging.info(f'Adjusting scene bounds due to warping at high latitude')
-            scene_poly = adjust_scene_poly_at_extreme_lat(scene_bounds, 4326, 3031)
-            scene_bounds = scene_poly.bounds 
-            logging.info(f'Adjusted scene bounds : {scene_bounds}')
-        if (scene_bounds[1] > 50) or (scene_bounds[3] > 50):
-            # Northern Hemisphere
-            logging.info(f'Adjusting scene bounds due to warping at high latitude')
-            scene_poly = adjust_scene_poly_at_extreme_lat(scene_bounds, 4326, 3995)
-            scene_bounds = scene_poly.bounds 
-            logging.info(f'Adjusted scene bounds : {scene_bounds}')
-
-        buffer = 0.1
-        scene_bounds_buf = scene_poly.buffer(buffer).bounds #buffered
-
         if otf_cfg['dem_path'] is not None:
             # set the dem to be the one specified if supplied
             logging.info(f'using DEM path specified : {otf_cfg["dem_path"]}')
@@ -215,27 +198,82 @@ def run_process(args):
             os.makedirs(dem_dl_folder, exist_ok=True)
             dem_filename = SCENE_NAME + '_dem.tif'
             DEM_PATH = os.path.join(dem_dl_folder,dem_filename)
-        
-        if any([otf_cfg['overwrite_dem'],not os.path.exists(DEM_PATH)]):
-            logging.info(f'Downloding DEM for  bounds : {scene_bounds_buf}')
-            logging.info(f'type of DEM being downloaded : {otf_cfg["dem_type"]}')
-            # get the DEM and geometry information
-            dem_data, dem_meta = stitch_dem(scene_bounds_buf,
-                            dem_name=otf_cfg['dem_type'],
-                            dst_ellipsoidal_height=True,
-                            dst_area_or_point='Point',
-                            merge_nodata_value=0,
-                            fill_to_bounds=True,
-                            )
-            
-            # save with rasterio
-            logging.info(f'saving dem to {DEM_PATH}')
-            with rasterio.open(DEM_PATH, 'w', **dem_meta) as ds:
-                ds.write(dem_data, 1)
-                ds.update_tags(AREA_OR_POINT='Point')
-            del dem_data
+
+        # check if scene crosses the AM
+        antimeridian_crossing = check_s1_bounds_cross_antimeridian(scene_bounds, max_scene_width=8)
+        if antimeridian_crossing: 
+            if any([otf_cfg['overwrite_dem'],not os.path.exists(DEM_PATH)]):
+                trg_crs = 3031 # NOTE Assuming in Antarctic region only
+                logging.warning('DEM crosses the antimeridian, splitting left right side and merging')
+                # split into bounds either side of the AM
+                bounds_left, bounds_right = split_am_crossing(scene_poly, lat_buff=0.2)
+                AM_DEMS = []
+                # get left dem
+                for side, split_bounds in [('left',bounds_left), ('right',bounds_right)]:
+                    logging.info(f'Getting DEM for {side} side of AM')
+                    split_bounds = adjust_scene_poly_at_extreme_lat(split_bounds, 4326, 3031).bounds
+                    logging.info(f'DEM bounds: {split_bounds}')
+                    DEM_PATH_SPLIT = DEM_PATH.replace('.tif',f'_{side}.tif')
+                    DEM_PATH_SPLIT_REPROJ = DEM_PATH.replace('.tif',f'_{side}_{trg_crs}.tif')
+                    dem_data, dem_meta = stitch_dem(split_bounds,
+                        dem_name='glo_30',
+                        dst_ellipsoidal_height=True,
+                        dst_area_or_point='Point',
+                        merge_nodata_value=0,
+                        fill_to_bounds=True,
+                    )
+                    with rasterio.open(DEM_PATH_SPLIT, 'w', **dem_meta) as ds:
+                        ds.write(dem_data,1)
+                        ds.update_tags(AREA_OR_POINT='Point')
+                    logging.info(f'Reprojecting DEM for {side} side of AM to {trg_crs}')
+                    reproject_raster(DEM_PATH_SPLIT , DEM_PATH_SPLIT_REPROJ,trg_crs)
+                    os.remove(DEM_PATH_SPLIT)
+                    AM_DEMS.append(DEM_PATH_SPLIT_REPROJ)
+                # merge the dems
+                rasterio.merge.merge(AM_DEMS,dst_path=DEM_PATH)
+                for f in AM_DEMS:
+                    os.remove(f)
+            else:
+                logging.info(f'Using existing DEM : {DEM_PATH}')
+
         else:
-            logging.info(f'Using existing DEM : {DEM_PATH}')
+            # if we are at high latitudes we need to correct the bounds due to the skewed box shape
+            if (scene_bounds[1] < -50) or (scene_bounds[3] < -50):
+                # Southern Hemisphere
+                logging.info(f'Adjusting scene bounds due to warping at high latitude')
+                scene_poly = adjust_scene_poly_at_extreme_lat(scene_bounds, 4326, 3031)
+                scene_bounds = scene_poly.bounds 
+                logging.info(f'Adjusted scene bounds : {scene_bounds}')
+            if (scene_bounds[1] > 50) or (scene_bounds[3] > 50):
+                # Northern Hemisphere
+                logging.info(f'Adjusting scene bounds due to warping at high latitude')
+                scene_poly = adjust_scene_poly_at_extreme_lat(scene_bounds, 4326, 3995)
+                scene_bounds = scene_poly.bounds 
+                logging.info(f'Adjusted scene bounds : {scene_bounds}')
+            
+            buffer = 0.1
+            scene_bounds_buf = scene_poly.buffer(buffer).bounds #buffered
+        
+            if any([otf_cfg['overwrite_dem'],not os.path.exists(DEM_PATH)]):
+                logging.info(f'Downloding DEM for  bounds : {scene_bounds_buf}')
+                logging.info(f'type of DEM being downloaded : {otf_cfg["dem_type"]}')
+                # get the DEM and geometry information
+                dem_data, dem_meta = stitch_dem(scene_bounds_buf,
+                                dem_name=otf_cfg['dem_type'],
+                                dst_ellipsoidal_height=True,
+                                dst_area_or_point='Point',
+                                merge_nodata_value=0,
+                                fill_to_bounds=True,
+                                )
+                
+                # save with rasterio
+                logging.info(f'saving dem to {DEM_PATH}')
+                with rasterio.open(DEM_PATH, 'w', **dem_meta) as ds:
+                    ds.write(dem_data, 1)
+                    ds.update_tags(AREA_OR_POINT='Point')
+                del dem_data
+            else:
+                logging.info(f'Using existing DEM : {DEM_PATH}')
 
         t3 = time.time()
         update_timing_file('Download DEM', t3 - t2, TIMING_FILE_PATH)

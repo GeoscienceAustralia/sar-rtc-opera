@@ -297,3 +297,50 @@ def adjust_scene_poly_at_extreme_lat(bbox, src_crs, ref_crs, delta=0.1):
         )
     corrected_poly = transform_polygon(ref_crs, src_crs, trans_poly)
     return corrected_poly
+
+
+def check_s1_bounds_cross_antimeridian(bounds, max_scene_width=20):
+    """Check if the s1 bounds cross the antimeridian. We set a max
+    scene width of 10. if the scene is greater than this either side
+    of the dateline, we assume it crosses the dateline as the
+    alternate scenario is a bounds with a very large width.
+
+    e.g. [-178.031982, -71.618958, 178.577438, -68.765755]
+
+    Args:
+        bounds (list or tuple): Bounds in 4326
+        max_scene_width (int, optional): maxumum width of bounds in 
+        lon degrees. Defaults to 20.
+
+    Returns:
+        bool: True if crosses the antimeridian
+    """
+
+    min_x = -180 + max_scene_width # -160
+    max_x = 180 - max_scene_width # 160
+    if (bounds[0] < min_x) and (bounds[0] > -180):
+        if bounds[2] > max_x and bounds[2] < 180:
+            return True
+    
+def split_am_crossing(scene_polygon, lat_buff=0.2):
+    """split the polygon into bounds on the left and
+    right of the antimeridian.
+
+    Args:
+        scene_polygon (shapely.polygon): polygon of the scene from asf
+        lat_buff (float): A lattitude degrees buffer to add/subtract from
+                            max and min lattitudes 
+
+    Returns:
+    list(tuple) : a list containing two sets of bounds for the left
+                    and right of the antimeridian
+    """
+    max_negative_x = max([point[0] for point in scene_polygon.exterior.coords if point[0] < 0])
+    min_positive_x = min([point[0] for point in scene_polygon.exterior.coords if point[0] > 0])
+    min_y = min([point[1] for point in scene_polygon.exterior.coords]) - lat_buff
+    max_y = max([point[1] for point in scene_polygon.exterior.coords]) + lat_buff
+    min_y = -90 if min_y < -90 else min_y
+    max_y = 90 if max_y > 90 else max_y
+    bounds_left = (-180, min_y, max_negative_x, max_y)
+    bounds_right = (min_positive_x, min_y, 180, max_y)
+    return [tuple(bounds_left), tuple(bounds_right)]
