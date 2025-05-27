@@ -2,7 +2,7 @@ FROM oraclelinux:9
 
 LABEL author="OPERA ADT" \
     description="RTC cal/val release R4" \
-    version="1.0.1-final"
+    version="1.0.4-final"
 
 RUN yum -y update &&\
     yum -y install curl &&\
@@ -30,16 +30,16 @@ RUN ${CONDA_PREFIX}/bin/conda init bash
 COPY --chown=rtc_user:rtc_user . /home/rtc_user/OPERA/RTC
 
 # create CONDA environment
-RUN conda create --name "RTC" --file /home/rtc_user/OPERA/RTC/Docker/lockfile.lock &&  conda clean -afy
+RUN conda env create --name "RTC" --file /home/rtc_user/OPERA/RTC/Docker/environment.yml &&  conda clean -afy
 
 SHELL ["conda", "run", "-n", "RTC", "/bin/bash", "-c"]
 
 WORKDIR /home/rtc_user/OPERA
 
 # installing OPERA s1-reader
-RUN curl -sSL https://github.com/isce-framework/s1-reader/archive/refs/tags/v0.2.2.tar.gz -o s1_reader_src.tar.gz &&\
+RUN curl -sSL https://github.com/isce-framework/s1-reader/archive/refs/tags/v0.2.5.tar.gz -o s1_reader_src.tar.gz &&\
     tar -xvf s1_reader_src.tar.gz &&\
-    ln -s s1-reader-0.2.2 s1-reader &&\
+    ln -s s1-reader-0.2.5 s1-reader &&\
     rm s1_reader_src.tar.gz &&\
     python -m pip install ./s1-reader
 
@@ -47,6 +47,7 @@ RUN curl -sSL https://github.com/isce-framework/s1-reader/archive/refs/tags/v0.2
 RUN python -m pip install ./RTC &&\
     echo "conda activate RTC" >> /home/rtc_user/.bashrc
 
+# place credentials in container
 COPY --chown=rtc_user --chmod=og-rw credentials/.netrc /home/rtc_user/.netrc
 
 WORKDIR /home/rtc_user/scratch

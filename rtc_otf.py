@@ -338,7 +338,7 @@ def run_process(args):
         logging.info(f'logs will be saved to {log_path}')
         
         if not otf_cfg["skip_rtc"]:
-            container = client.containers.run(f'opera/rtc:final_1.0.1', 
+            container = client.containers.run(f'opera/rtc:final_1.0.4-atmosbugfix', 
                                 docker_command, 
                                 volumes=volumes, 
                                 user='rtc_user',
