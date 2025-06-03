@@ -1,4 +1,5 @@
-# git clone --branch v1.0.1 --single-branch  https://github.com/opera-adt/RTC.git RTC
+# This is currently a fork from main that has updated isce3 package with atmospheric fixes 
+# it is RTC==v1.0.4 with isce3==0.24.4 instead of isce3==0.15.0 
 git clone --branch software_updates https://github.com/abradley60/RTC.git RTC
 
 # build container
