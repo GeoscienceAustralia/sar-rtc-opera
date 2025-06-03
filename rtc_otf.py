@@ -424,9 +424,10 @@ if __name__ == "__main__":
     # loop through the list of scenes
     # download data -> produce backscatter -> save
     scenes = otf_cfg['scenes']
-    logging.info(f'Starting processing with {args.n_parallel} parallel workers')
+    n_parallel = otf_cfg['n_parallel']
+    logging.info(f'Starting processing with {n_parallel} parallel workers')
 
-    with ProcessPoolExecutor(max_workers=args.n_parallel) as executor:
+    with ProcessPoolExecutor(max_workers=n_parallel) as executor:
         futures = [executor.submit(process_scene, args.config, scene) for scene in scenes]
         for future in as_completed(futures):
             scene, ok, tb = future.result()

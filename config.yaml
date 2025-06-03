@@ -99,6 +99,9 @@ scenes: [
 # rtc-opera, rtc-opera-etad, rtc-opera-native-ac
 software : rtc-opera-native-ac-bugfixed
 
+# number of scenes to run in parallel
+n_parallel: 1
+
 # the template for the OPERA-RTC backscatter products
 # variables are set in this file for each scene
 OPERA_rtc_template: configs/OPERA-rtc-native-ac.yaml
