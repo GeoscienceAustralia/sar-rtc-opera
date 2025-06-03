@@ -3,18 +3,17 @@ import argparse
 import os
 import asf_search as asf
 from eof.download import download_eofs
+from dem_handler.dem.cop_glo30 import get_cop30_dem_for_bounds
 import logging
 import zipfile
-from shapely.geometry import Polygon, box
+from shapely.geometry import shape
 import rasterio
-from dem_stitcher import stitch_dem
 import docker
 from utils import *
 from etad import *
 import time
 import shutil
 import json
-import geopandas as gpd
 
 
 logging.basicConfig(
@@ -175,10 +174,7 @@ def run_process(args):
 
         # download a DEM covering the region of interest
         # first get the coordinates from the asf search result
-        points = (asf_result.__dict__['umm']['SpatialExtent']['HorizontalSpatialDomain']
-                ['Geometry']['GPolygons'][0]['Boundary']['Points'])
-        points = [(p['Longitude'],p['Latitude']) for p in points]
-        scene_poly = Polygon(points)
+        scene_poly = shape(asf_result.geometry)
         scene_bounds = scene_poly.bounds 
         logging.info(f'Scene bounds : {scene_bounds}')
 
@@ -199,88 +195,29 @@ def run_process(args):
             dem_filename = SCENE_NAME + '_dem.tif'
             DEM_PATH = os.path.join(dem_dl_folder,dem_filename)
 
-        # check if scene crosses the AM
-        antimeridian_crossing = check_s1_bounds_cross_antimeridian(scene_bounds, max_scene_width=8)
-        if antimeridian_crossing: 
-            if any([otf_cfg['overwrite_dem'],not os.path.exists(DEM_PATH)]):
-                trg_crs = 3031 # NOTE Assuming in Antarctic region only
-                logging.warning('DEM crosses the antimeridian, splitting left right side and merging')
-                # split into bounds either side of the AM
-                bounds_left, bounds_right = split_am_crossing(scene_poly, lat_buff=0.2)
-                AM_DEMS = []
-                # get left dem
-                for side, split_bounds in [('left',bounds_left), ('right',bounds_right)]:
-                    logging.info(f'Getting DEM for {side} side of AM')
-                    split_bounds = adjust_scene_poly_at_extreme_lat(split_bounds, 4326, 3031).bounds
-                    logging.info(f'DEM bounds: {split_bounds}')
-                    DEM_PATH_SPLIT = DEM_PATH.replace('.tif',f'_{side}.tif')
-                    DEM_PATH_SPLIT_REPROJ = DEM_PATH.replace('.tif',f'_{side}_{trg_crs}.tif')
-                    dem_data, dem_meta = stitch_dem(split_bounds,
-                        dem_name='glo_30',
-                        dst_ellipsoidal_height=True,
-                        dst_area_or_point='Point',
-                        merge_nodata_value=0,
-                        fill_to_bounds=True,
-                    )
-                    with rasterio.open(DEM_PATH_SPLIT, 'w', **dem_meta) as ds:
-                        ds.write(dem_data,1)
-                        ds.update_tags(AREA_OR_POINT='Point')
-                    logging.info(f'Reprojecting DEM for {side} side of AM to {trg_crs}')
-                    reproject_raster(DEM_PATH_SPLIT , DEM_PATH_SPLIT_REPROJ,trg_crs)
-                    os.remove(DEM_PATH_SPLIT)
-                    AM_DEMS.append(DEM_PATH_SPLIT_REPROJ)
-                # merge the dems
-                rasterio.merge.merge(AM_DEMS,dst_path=DEM_PATH)
-                for f in AM_DEMS:
-                    os.remove(f)
-            else:
-                logging.info(f'Using existing DEM : {DEM_PATH}')
-
-        else:
-            # if we are at high latitudes we need to correct the bounds due to the skewed box shape
-            if (scene_bounds[1] < -50) or (scene_bounds[3] < -50):
-                # Southern Hemisphere
-                logging.info(f'Adjusting scene bounds due to warping at high latitude')
-                scene_poly = adjust_scene_poly_at_extreme_lat(scene_bounds, 4326, 3031)
-                scene_bounds = scene_poly.bounds 
-                logging.info(f'Adjusted scene bounds : {scene_bounds}')
-            if (scene_bounds[1] > 50) or (scene_bounds[3] > 50):
-                # Northern Hemisphere
-                logging.info(f'Adjusting scene bounds due to warping at high latitude')
-                scene_poly = adjust_scene_poly_at_extreme_lat(scene_bounds, 4326, 3995)
-                scene_bounds = scene_poly.bounds 
-                logging.info(f'Adjusted scene bounds : {scene_bounds}')
-            
-            buffer = 0.1
-            scene_bounds_buf = scene_poly.buffer(buffer).bounds #buffered
         
-            if any([otf_cfg['overwrite_dem'],not os.path.exists(DEM_PATH)]):
-                logging.info(f'Downloding DEM for  bounds : {scene_bounds_buf}')
-                logging.info(f'type of DEM being downloaded : {otf_cfg["dem_type"]}')
-                # get the DEM and geometry information
-                dem_data, dem_meta = stitch_dem(scene_bounds_buf,
-                                dem_name=otf_cfg['dem_type'],
-                                dst_ellipsoidal_height=True,
-                                dst_area_or_point='Point',
-                                merge_nodata_value=0,
-                                fill_to_bounds=True,
-                                )
-                
-                # save with rasterio
-                logging.info(f'saving dem to {DEM_PATH}')
-                with rasterio.open(DEM_PATH, 'w', **dem_meta) as ds:
-                    ds.write(dem_data, 1)
-                    ds.update_tags(AREA_OR_POINT='Point')
-                del dem_data
-            else:
-                logging.info(f'Using existing DEM : {DEM_PATH}')
+        if any([otf_cfg['overwrite_dem'],not os.path.exists(DEM_PATH)]):
+            
+            get_cop30_dem_for_bounds(
+                bounds=scene_bounds,
+                save_path=DEM_PATH,
+                ellipsoid_heights=True,
+                adjust_at_high_lat=True,
+                buffer_degrees=0.3,
+                cop30_folder_path=dem_dl_folder,
+                geoid_tif_path=os.path.join(dem_dl_folder,f"{scene}_geoid.tif"),
+                download_dem_tiles=True,
+                download_geoid=True,
+            )
+        else:
+            logging.info(f'Using existing DEM : {DEM_PATH}')
 
         t3 = time.time()
         update_timing_file('Download DEM', t3 - t2, TIMING_FILE_PATH)
 
         # now we have downloaded all the necessary data, we can create a
         # config for the scene we want to process
-        with open(otf_cfg['OPERA_rtc_remplate'], 'r') as f:
+        with open(otf_cfg['OPERA_rtc_template'], 'r') as f:
             template_text = f.read()
         # search for the strings we want to replaces
         template_text = template_text.replace('SAFE_PATH',SAFE_PATH)
@@ -362,8 +299,6 @@ def run_process(args):
                     t = int(time.time())
 
             # write the logs from the container
-            # TODO write to file in above, no need to keep
-            # the full logs in memory
             with open(log_path, 'w') as f:
                 f.write(logs.decode("utf-8"))
 
@@ -377,14 +312,13 @@ def run_process(args):
         # check if the final products exist, indicating success 
         h5_path = os.path.join(SCENE_OUT_FOLDER,
                                prod_id + '.h5')
+        
         # keep track of success
         if os.path.exists(h5_path):
-            clear_logs=True
             run_success = True
             success['opera-rtc'].append(h5_path)
             logging.info(f'RTC Backscatter successfully made')
         else:
-            clear_logs = False
             run_success = False
             failed['opera-rtc'].append(h5_path)
             logging.info(f'RTC Backscatter failed')

@@ -1,5 +1,5 @@
 # opera-RTC-otf
-On the fly production of sentinel-1 OPERA RTC backscatter 
+On the fly production of sentinel-1 OPERA RTC backscatter
 
 # Requirments
 - Git
@@ -27,8 +27,8 @@ sh setup.sh
 
 
 # Instructions
-- set scene and data path details in config.yaml
-- Change the OPERA-rtc-template.yaml. This is the opera template used for all scenes specified
+- Set scene and data path details in config.yaml
+- Change the OPERA-rtc-template.yaml if required. This is the opera template used for all scenes specified
 - run process scripts
 ```bash
 source run_process.sh

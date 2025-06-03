@@ -1,19 +1,3 @@
-# This is currently a fork from main that has updated isce3 package with atmospheric fixes 
-# it is RTC==v1.0.4 with isce3==0.24.4 instead of isce3==0.15.0 
-git clone --branch software_updates https://github.com/abradley60/RTC.git RTC
-
-# build container
-cp -fr build_docker_image_otf.sh RTC
-cp -fr Dockerfile RTC/Docker
-cp -fr credentials RTC
-cd RTC
-sh build_docker_image_otf.sh
-cd ..
-
-# copy .netrc credentials on local machine
-cp -fr credentials/.netrc ~/
-chmod og-rw ~/.netrc
-
 INSTALL_CONDA=false
 
 # Process command-line arguments
@@ -46,3 +30,16 @@ fi
 
 # create the environment
 conda env create --file environment.yml
+
+# buld the docker image - see Dockerfile for RTC version
+REPO=opera
+IMAGE=rtc
+TAG=final_1.0.4-atmosbugfix
+
+echo "IMAGE is $REPO/$IMAGE:$TAG"
+
+# fail on any non-zero exit codes
+set -ex
+
+# build image
+docker build --rm --force-rm --network host -t $REPO/$IMAGE:$TAG -f Dockerfile .
