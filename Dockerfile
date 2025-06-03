@@ -27,6 +27,8 @@ ENV PATH=${CONDA_PREFIX}/bin:${PATH}
 RUN ${CONDA_PREFIX}/bin/conda init bash
 
 # copy RTC source code and set rtc_user as owner
+# The appropriate RTC version is cloned in the setup.sh file
+# This is currently a fork from main that has updated isce3 package with atmospheric fixes 
 COPY --chown=rtc_user:rtc_user . /home/rtc_user/OPERA/RTC
 
 # create CONDA environment
