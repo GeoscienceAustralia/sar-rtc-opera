@@ -17,16 +17,24 @@ import json
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import traceback
 
+def setup_logging(log_path):
 
-logging.basicConfig(
-    format='%(asctime)s %(levelname)-8s %(message)s',
+    log = logging.getLogger()  # root logger
+    # create a handler to write to file and stdout/console
+    for hdlr in log.handlers[:]:  # remove all old handlers
+        log.removeHandler(hdlr)
+    logging_file_handler = logging.FileHandler(log_path, mode="w")
+    logging.basicConfig(
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging_file_handler
+    ],
     level=logging.INFO,
-    datefmt='%Y-%m-%d %H:%M:%S')
+    format='%(asctime)s %(levelname)-8s %(message)s',
+    datefmt="%Y-%m-%d %H:%M:%S",
+    )
 
-# write to a local log file
-fh = logging.FileHandler('run.log')
-logger = logging.getLogger()
-logger.addHandler(fh)
+    return logging_file_handler
 
 def update_timing_file(key, time, path, replace=False):
     """Update the timing json at specified path. Creates if doesn't exists. Update
@@ -58,6 +66,15 @@ def run_process(config, scene):
     # read in the config for on the fly (otf) processing
     with open(config, 'r', encoding='utf8') as fin:
         otf_cfg = yaml.safe_load(fin.read())
+    
+    # add the scene name to the out folder
+    OUT_FOLDER = otf_cfg['OPERA_output_folder']
+    SCENE_OUT_FOLDER = os.path.join(OUT_FOLDER,scene)
+    os.makedirs(SCENE_OUT_FOLDER, exist_ok=True)
+
+    #setup logging
+    log_path = os.path.join(SCENE_OUT_FOLDER,scene+'.logs')
+    logging_file_handler = setup_logging(log_path)
 
     # read in aws credentials and set as environ vars
     logging.info(f'setting aws credentials from : {otf_cfg["aws_credentials"]}')
@@ -69,11 +86,6 @@ def run_process(config, scene):
             os.environ[k] = aws_cfg[k]
 
     t0 = time.time()
-    
-    # add the scene name to the out folder
-    OUT_FOLDER = otf_cfg['OPERA_output_folder']
-    SCENE_OUT_FOLDER = os.path.join(OUT_FOLDER,scene)
-    os.makedirs(SCENE_OUT_FOLDER, exist_ok=True)
     
     # make the timing file
     TIMING_FILE = scene + '_timing.json'
@@ -176,7 +188,7 @@ def run_process(config, scene):
         # set the dem to be the one specified if supplied
         logging.info(f'using DEM path specified : {otf_cfg["dem_path"]}')
         if not os.path.exists(otf_cfg['dem_path']):
-            raise FileExistsError(f'{otf_cfg["dem_path"]}')
+            raise FileExistsError(f'{otf_cfg["dem_path"]} does not exist')
         else:
             DEM_PATH = otf_cfg['dem_path']
             dem_filename = os.path.basename(DEM_PATH)
@@ -395,7 +407,16 @@ def run_process(config, scene):
         upload_file(file_name=TIMING_FILE_PATH, 
                     bucket=bucket, 
                     object_name=bucket_path)
+        bucket_path = os.path.join(bucket_folder, f'{scene}.logs')
+        logging.info(f'Uploading file: {TIMING_FILE_PATH}')
+        logging.info(f'Destination: {bucket_path}')
+        upload_file(file_name=log_path, 
+                    bucket=bucket, 
+                    object_name=bucket_path)
         os.remove(TIMING_FILE_PATH)
+    
+    logging.getLogger().removeHandler(logging_file_handler)
+    os.remove(log_path)
 
 def process_scene(config_path, scene):
     try:
@@ -409,7 +430,6 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", "-c", help="path to config.yml", required=True, type=str)
-    parser.add_argument("--n_parallel", "-n", help="number of parallel scenes to run", required=False, type=int, default=1)
     args = parser.parse_args()
 
     t_start = time.time()

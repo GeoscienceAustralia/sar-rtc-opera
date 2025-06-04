@@ -43,10 +43,6 @@ python rtc_otf.py -c config.yaml
 nohup python rtc_otf.py -c config.yaml
 ```
 
-- For parallel processing
-```bash
-nohup python rtc_otf.py -c config.yaml -n 2
-```
 - In a new terminal, run the following to trace the output from the nohup file
 ```bash
 tail -f nohup.out
