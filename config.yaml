@@ -165,7 +165,7 @@ gdal_threads : 4
 ETAD_folder : /data/ETAD
 
 # overwrite the dem if it already exists
-overwrite_dem : False
+overwrite_dem : True
 
 # type of dem to download for each scene
 # list of valid dems in https://pypi.org/project/dem-stitcher/
