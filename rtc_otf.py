@@ -73,8 +73,8 @@ def run_process(config, scene):
     os.makedirs(SCENE_OUT_FOLDER, exist_ok=True)
 
     #setup logging
-    log_path = os.path.join(SCENE_OUT_FOLDER,scene+'.logs')
-    logging_file_handler = setup_logging(log_path)
+    WOKFLOW_LOGS_PATH = os.path.join(OUT_FOLDER,scene+'.logs')
+    logging_file_handler = setup_logging(WOKFLOW_LOGS_PATH)
 
     # read in aws credentials and set as environ vars
     logging.info(f'setting aws credentials from : {otf_cfg["aws_credentials"]}')
@@ -89,7 +89,7 @@ def run_process(config, scene):
     
     # make the timing file
     TIMING_FILE = scene + '_timing.json'
-    TIMING_FILE_PATH = os.path.join(otf_cfg['OPERA_output_folder'],TIMING_FILE)
+    TIMING_FILE_PATH = os.path.join(OUT_FOLDER,TIMING_FILE)
 
     logging.info(f'PROCESS 1: Downloads')
     # search for the scene in asf
@@ -277,8 +277,8 @@ def run_process(config, scene):
     logging.info(f'Running the container, this may take some time...')
     prod_id = (opera_rtc_cfg['runconfig']
                 ['groups']['product_group']['product_id'])
-    log_path = os.path.join(SCENE_OUT_FOLDER, prod_id +'.logs')
-    logging.info(f'logs will be saved to {log_path}')
+    LOG_PATH = os.path.join(SCENE_OUT_FOLDER, prod_id +'.logs')
+    logging.info(f'logs will be saved to {LOG_PATH}')
     
     if not otf_cfg["skip_rtc"]:
         container = client.containers.run(f'opera/rtc:final_1.0.4-atmosbugfix', 
@@ -305,7 +305,7 @@ def run_process(config, scene):
                 t = int(time.time())
 
         # write the logs from the container
-        with open(log_path, 'w') as f:
+        with open(LOG_PATH, 'w') as f:
             f.write(logs.decode("utf-8"))
 
         # kill the container once processing is done
@@ -408,15 +408,15 @@ def run_process(config, scene):
                     bucket=bucket, 
                     object_name=bucket_path)
         bucket_path = os.path.join(bucket_folder, f'{scene}.logs')
-        logging.info(f'Uploading file: {TIMING_FILE_PATH}')
+        logging.info(f'Uploading file: {WOKFLOW_LOGS_PATH}')
         logging.info(f'Destination: {bucket_path}')
-        upload_file(file_name=log_path, 
+        upload_file(file_name=WOKFLOW_LOGS_PATH, 
                     bucket=bucket, 
                     object_name=bucket_path)
         os.remove(TIMING_FILE_PATH)
     
     logging.getLogger().removeHandler(logging_file_handler)
-    os.remove(log_path)
+    os.remove(WOKFLOW_LOGS_PATH)
 
 def process_scene(config_path, scene):
     try:
