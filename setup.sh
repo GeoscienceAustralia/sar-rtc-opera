@@ -20,12 +20,12 @@ done
 # Python installation, needed on aws image for management
 if [ "$INSTALL_CONDA" = true ]; then
     echo "Installing mamba environment manager"
-    wget https://github.com/conda-forge/miniforge/releases/latest/download/Mambaforge-Linux-x86_64.sh
-    bash ./Mambaforge-Linux-x86_64.sh -b -f -p ~/mambaforge
-    ~/mambaforge/bin/conda init
+    curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
+    bash Miniforge3-$(uname)-$(uname -m).sh -b
+    ~/miniforge3/bin/conda init
     source ~/.bashrc
     echo "yes" | conda update --all
-    rm ./Mambaforge-Linux-x86_64.sh
+    rm ./Miniforge3-$(uname)-$(uname -m).sh
 fi
 
 # create the environment

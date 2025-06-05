@@ -18,23 +18,26 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 import traceback
 
 def setup_logging(log_path):
-
-    log = logging.getLogger()  # root logger
-    # create a handler to write to file and stdout/console
-    for hdlr in log.handlers[:]:  # remove all old handlers
+    # Get the root logger and remove any inherited handlers
+    log = logging.getLogger()
+    for hdlr in log.handlers[:]:
         log.removeHandler(hdlr)
-    logging_file_handler = logging.FileHandler(log_path, mode="w")
-    logging.basicConfig(
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging_file_handler
-    ],
-    level=logging.INFO,
-    format='%(asctime)s %(levelname)-8s %(message)s',
-    datefmt="%Y-%m-%d %H:%M:%S",
-    )
 
-    return logging_file_handler
+    # Create new handlers
+    logging_file_handler = logging.FileHandler(log_path, mode="w")
+    logging_stream_handler = logging.StreamHandler(sys.stdout)
+
+    formatter = logging.Formatter(
+        fmt='%(asctime)s %(levelname)-8s %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+    logging_file_handler.setFormatter(formatter)
+    logging_stream_handler.setFormatter(formatter)
+
+    log.setLevel(logging.INFO)
+    log.addHandler(logging_file_handler)
+    log.addHandler(logging_stream_handler)
+
 
 def update_timing_file(key, time, path, replace=False):
     """Update the timing json at specified path. Creates if doesn't exists. Update
@@ -71,10 +74,14 @@ def run_process(config, scene):
     OUT_FOLDER = otf_cfg['OPERA_output_folder']
     SCENE_OUT_FOLDER = os.path.join(OUT_FOLDER,scene)
     os.makedirs(SCENE_OUT_FOLDER, exist_ok=True)
+    # same for scratch folder
+    SCRATCH_FOLDER = otf_cfg['OPERA_scratch_folder']
+    SCENE_SCRATCH_FOLDER = os.path.join(SCRATCH_FOLDER,scene)
+    os.makedirs(SCENE_SCRATCH_FOLDER, exist_ok=True)
 
     #setup logging
     WOKFLOW_LOGS_PATH = os.path.join(OUT_FOLDER,scene+'.logs')
-    logging_file_handler = setup_logging(WOKFLOW_LOGS_PATH)
+    setup_logging(WOKFLOW_LOGS_PATH)
 
     # read in aws credentials and set as environ vars
     logging.info(f'setting aws credentials from : {otf_cfg["aws_credentials"]}')
@@ -231,7 +238,7 @@ def run_process(config, scene):
     template_text = template_text.replace('DEM_PATH',DEM_PATH)
     template_text = template_text.replace('SCENE_NAME',SCENE_NAME)
     template_text = template_text.replace('OPERA_SCRATCH_FOLDER',
-                                            otf_cfg['OPERA_scratch_folder'])
+                                            SCENE_SCRATCH_FOLDER)
     template_text = template_text.replace('OPERA_OUTPUT_FOLDER',
                                             SCENE_OUT_FOLDER)
     template_text = template_text.replace('POLARIZATION_TYPE',
@@ -389,9 +396,7 @@ def run_process(config, scene):
             shutil.rmtree(ETAD_SAFE_PATH)
             logging.info(f'Clearing directory: {ETAD_SAFE_PATH}')
         shutil.rmtree(SCENE_OUT_FOLDER)
-        shutil.rmtree(otf_cfg['OPERA_scratch_folder'])
-        # remake the scratch folder
-        os.makedirs(otf_cfg['OPERA_scratch_folder'])
+        shutil.rmtree(SCENE_SCRATCH_FOLDER)
     
     t6 = time.time()
     update_timing_file('Delete Files', t6 - t5, TIMING_FILE_PATH)
@@ -415,9 +420,6 @@ def run_process(config, scene):
                     object_name=bucket_path)
         os.remove(TIMING_FILE_PATH)
     
-    logging.getLogger().removeHandler(logging_file_handler)
-    os.remove(WOKFLOW_LOGS_PATH)
-
 def process_scene(config_path, scene):
     try:
         run_process(config_path, scene)
