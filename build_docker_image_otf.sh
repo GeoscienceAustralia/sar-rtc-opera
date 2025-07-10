@@ -2,7 +2,7 @@
 
 REPO=opera
 IMAGE=rtc
-TAG=final_1.0.1
+TAG=final_1.0.4-atmosbugfix
 
 echo "IMAGE is $REPO/$IMAGE:$TAG"
 
@@ -19,7 +19,7 @@ docker build --rm --force-rm --network host -t $REPO/$IMAGE:$TAG -f Docker/Docke
 #docker run --rm -u "$(id -u):$(id -g)" -v "$PWD:/mnt" -w /mnt -it --network host "${IMAGE}:$t" pytest /mnt/tests/
 
 # create image tar
-docker save $REPO/$IMAGE:$TAG > Docker/dockerimg_rtc_${TAG}.tar
+# docker save $REPO/$IMAGE:$TAG > Docker/dockerimg_rtc_${TAG}.tar
 
 # remove image
 # docker image rm $REPO/$IMAGE:$TAG
