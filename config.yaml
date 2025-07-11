@@ -77,7 +77,7 @@ scenes: [
         # 'S1A_IW_SLC__1SDV_20221208T191403_20221208T191430_046244_058998_28A3', # done, native-ac
         # 'S1A_IW_SLC__1SDV_20221220T191402_20221220T191429_046419_058F94_70A0', # done, native-ac
         # # Daintree Queensland Rainforest (145.225097 -16.422876)
-        'S1A_IW_SLC__1SDV_20240719T195219_20240719T195246_054834_06AD81_2850', # done, native-ac, etad
+        # 'S1A_IW_SLC__1SDV_20240719T195219_20240719T195246_054834_06AD81_2850', # done, native-ac, etad
         # 'S1A_IW_SLC__1SDV_20240625T195220_20240625T195247_054484_06A15E_25DD', # done, native-ac, etad
         # 'S1A_IW_SLC__1SDV_20240601T195221_20240601T195248_054134_06953D_BA35', # done, native-ac, etad
         # 'S1A_IW_SLC__1SDV_20240508T195222_20240508T195249_053784_06892A_14BF', # done, native-ac, etad
@@ -92,12 +92,24 @@ scenes: [
         # 'S1A_IW_SLC__1SDV_20231005T195224_20231005T195251_050634_0619A2_216F', # done, native-ac, etad
         # 'S1A_IW_SLC__1SDV_20230911T195224_20230911T195251_050284_060DB2_CC96', # done, native-ac, etad
         # 'S1A_IW_SLC__1SDV_20230818T195223_20230818T195250_049934_0601BA_AE0C', # done, native-ac, etad
+        # north-queensland-forest-timeseries
+        "S1A_IW_SLC__1SDV_20230730T195937_20230730T200004_049657_05F8A8_7C6F",
+        "S1A_IW_SLC__1SDV_20230624T195935_20230624T200002_049132_05E87D_BD97",
+        "S1A_IW_SLC__1SDV_20230519T195933_20230519T200000_048607_05D8A0_4B72",
+        "S1A_IW_SLC__1SDV_20230413T195931_20230413T195958_048082_05C7B3_6916",
+        "S1A_IW_SLC__1SDV_20230308T195929_20230308T195957_047557_05B5FC_A568",
+        "S1A_IW_SLC__1SDV_20230131T195930_20230131T195958_047032_05A444_9104",
+        "S1A_IW_SLC__1SDV_20221226T195932_20221226T195959_046507_059299_9E21",
+        "S1A_IW_SLC__1SDV_20221120T195934_20221120T200001_045982_0580B0_F591",
+        "S1A_IW_SLC__1SDV_20221015T195934_20221015T200001_045457_056FB1_A55C",
+        "S1A_IW_SLC__1SDV_20220909T195934_20220909T200001_044932_055E0B_B585",
+        "S1A_IW_SLC__1SDV_20220804T195932_20220804T195959_044407_054CA9_57BF",
         ]
 
 # the name of the software. This will form part of the path
 # where the products are written
 # rtc-opera, rtc-opera-etad, rtc-opera-native-ac
-software : rtc-opera-native-ac-bugfixed
+software : rtc-opera-native-ac-isce3-v0_24_4
 
 # number of scenes to run in parallel
 n_parallel: 1
@@ -180,7 +192,7 @@ scene_prefix:
 
 # specify the folder in the s3 bucket
 # sar-software-comparison-Xm, qld-rainforest-timeseries-Xm-2022, daintree-rainforest-timeseries-20m-2024
-s3_bucket_folder: sar-comparison-study/s1-rtc-scenes/daintree-rainforest-timeseries-20m-2024
+s3_bucket_folder: sar-comparison-study/s1-rtc-scenes/north-queensland-forest-timeseries-20m
 
 # s3 bucket to push the results
 # note, output crs (trg_crs) is set in opera config
